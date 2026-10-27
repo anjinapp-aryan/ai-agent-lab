@@ -18,6 +18,7 @@ uv run pytest tests -q                                   # offline; live tests a
 uv run pytest tests/phase_01/test_pydantic_ai_agent.py::test_unknown_tool_name_fed_back_not_crash   # single test
 uv run pytest tests -m live                              # real model, 6 scenarios x 2 frameworks
 uv run python phase-01/run_eval.py --only=langgraph --trace   # or --only=pydantic-ai; writes phase-01/results/live_results.json
+uv run python phase-01/experiments.py parallel-offline|parallel-live 3|timeout|timeout-trace langgraph   # instrumented-tool parallelism/timeout experiments -> results/experiments.json
 uv run python phase-01/trace_demo.py langgraph|pydantic-ai seq|zero|badargs   # span trees, no key needed
 uv run python phase-01/langgraph-agent/lg_agent.py "question"
 ```
@@ -40,4 +41,4 @@ Docs in `phases/phase-01/` (comparison, failure-analysis, observations, evaluati
 
 ## State
 
-Branch `phase-01` is pushed to `origin` (github.com/anjinapp-aryan/ai-agent-lab); `main` does not exist on the remote yet. Phase 1 verdict is GO WITH LIMITATIONS: live eval ran once on Groq `openai/gpt-oss-120b` (11/12; Pydantic AI aborts on a tool exception by design). Gemini 3.6 tool calls through LangGraph return HTTP 400, so use Groq for live runs. Still unverified: Langfuse export (no keys), tool timeouts, parallel tool calls. See `phases/phase-01/phase-1-decision.md`.
+Phase 1 is closed as GO WITH LIMITATIONS on branch `phase-01` (pushed to `origin`; `main` does not exist on the remote). Live runs use Groq `openai/gpt-oss-120b`; Gemini 3.6 tool calls through LangGraph return HTTP 400. Verified: parallel vs sequential tool execution, timeouts, live eval (see `phases/phase-01/phase-1-decision.md`). Still blocked: Langfuse Cloud export (no credentials). `experiments.py` takes optional `tools=`/`step_timeout=`/`run_timeout=` on the agent `run()` functions; defaults leave the agents unchanged. Live tests run whenever the active `.env.<APP_ENV>` has a provider, so `pytest` then uses real API quota.

@@ -28,9 +28,10 @@ def default_model():
     return ChatOpenAI(model=cfg.model_name, api_key=cfg.api_key, base_url=cfg.base_url, temperature=0)
 
 
-def build_graph(model=None, handle_tool_errors=True):
+def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None):
     """handle_tool_errors is passed to ToolNode; see failure-analysis.md for what it changes."""
-    llm = (model or default_model()).bind_tools(TOOLS)
+    tools = tools or TOOLS
+    llm = (model or default_model()).bind_tools(tools)
 
     def agent_node(state: MessagesState):
         msgs = [SystemMessage(SYSTEM_INSTRUCTIONS)] + state["messages"]
@@ -38,15 +39,17 @@ def build_graph(model=None, handle_tool_errors=True):
 
     g = StateGraph(MessagesState)
     g.add_node("agent", agent_node)
-    g.add_node("tools", ToolNode(TOOLS, handle_tool_errors=handle_tool_errors))
+    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors))
     g.add_edge(START, "agent")
     g.add_conditional_edges("agent", tools_condition)  # -> "tools" or END
     g.add_edge("tools", "agent")
-    return g.compile()
+    compiled = g.compile()
+    compiled.step_timeout = step_timeout  # native LangGraph per-step timeout (experiments only)
+    return compiled
 
 
-def run(question: str, model=None, handle_tool_errors=True) -> RunResult:
-    graph = build_graph(model, handle_tool_errors)
+def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None) -> RunResult:
+    graph = build_graph(model, handle_tool_errors, tools, step_timeout)
     result = RunResult(final_text="")
     messages = []
     try:

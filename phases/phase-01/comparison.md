@@ -11,6 +11,8 @@ Evidence: code written, scripted-model runs, span trees. `[unobserved]` = needs 
 | Context | State schema | Dependency injection `deps_type` / `RunContext` (not used in Phase 1) |
 | Validation | Pydantic on tool args, surfaced as `ToolInvocationError` text | Pydantic on args + `output_type` validation; structured error list |
 | Retry | No retry counter in loop; error text goes back, model decides, cap = recursion_limit | First-class per-tool `retries`; exhausted → `UnexpectedModelBehavior` |
+| Timeout | None for tools; `step_timeout` enforced late on sync, on time on async | `Tool(timeout=)` (model-visible retry) and `run_sync(timeout=)` (aborts run) |
+| Concurrency | `ToolNode` runs batched calls in parallel (measured: 1.5s overlap of 1.5s) | Parallel by default (same measurement); `Tool(sequential=True)` serializes (measured) |
 | Error handling | Tool exceptions → error ToolMessage by default (observed); toggle `handle_tool_errors` | Tool exceptions escape by default; `ModelRetry` for model-visible errors |
 | Control flow | Arbitrary graph: branches, cycles, subgraphs, interrupts | Linear agent loop; `pydantic-graph` for custom flows `[K]` |
 | Observability | OpenInference LangChain instrumentor; 14 spans for 2-tool run, node-level CHAIN/AGENT spans | Native OTel spans (`invoke_agent`/`chat`/`execute_tool`); 6 spans for same run; OpenInference processor adds span kinds |
@@ -40,3 +42,13 @@ No overall winner.
 | Step budget | `recursion_limit` | `UsageLimits.request_limit` | counter in the loop |
 | Error to model | `ToolMessage(status="error")` | `ToolReturnPart(outcome="retried")` | Error string in the tool-result slot |
 | Provider | `ChatOpenAI(base_url)` | `OpenAIChatModel(OpenAIProvider(base_url))` | HTTP POST /chat/completions with `tools=[...]` |
+
+## Final architectural findings (verified by experiment)
+- **Loop:** LangGraph, a graph cycle you wire (`agent`<->`tools`); Pydantic AI, internal to `Agent.run`.
+- **Tool error semantics:** LangGraph feeds exceptions back to the model (live S4 recovered); Pydantic AI lets them escape (live S4 terminated). Validation errors and unknown tool names are fed back by both.
+- **Retry:** Pydantic AI owns an explicit per-tool retry budget (`retries`); LangGraph has none: the model retries until `recursion_limit`.
+- **Timeout:** nobody by default. Pydantic AI: per tool or per run. LangGraph: per graph step (late on sync) or write it in the tool.
+- **Parallelism:** the framework schedules; the model decides whether there is anything to parallelize. Scripted two-call response: both frameworks overlapped fully. Real model (gpt-oss-120b, 6 live runs): always one call per turn, 3 model calls, zero overlap. Do not conflate the two.
+- **State:** LangGraph explicit `MessagesState`; Pydantic AI implicit message history; neither persists across `run()` calls here.
+- **Observability:** full trajectory reconstructable from spans offline (LangGraph 14 spans / Pydantic AI 6 for the 2-tool task). Langfuse Cloud rendering unverified (no credentials).
+- **What each hides:** LangGraph hides node execution, reducer merging and tool scheduling inside `ToolNode` but keeps routing visible; Pydantic AI hides the whole loop, retry bookkeeping and tool scheduling.

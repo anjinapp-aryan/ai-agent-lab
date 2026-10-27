@@ -44,3 +44,11 @@ Source: scripted-model execution + span trees + reading installed library behavi
 - S4: LangGraph run completed with a model-written explanation; Pydantic AI run terminated with `ZeroDivisionError` — the default-behavior difference now seen end to end.
 - S5/S6: model refused in text before any tool call, so validation and "no fabrication" were satisfied by model behavior, not framework behavior.
 - Still unobserved: Langfuse-side trace rendering, tool-call-id linkage, parallel call structure.
+
+## Closure findings
+- Execution concurrency is a framework property; batching is a model property. The same frameworks overlapped fully when a scripted model batched, and did not overlap at all when a real model asked for one tool per turn.
+- gpt-oss-120b made 3 model calls for S3 in 6/6 runs (call, call, answer).
+- A hung tool hangs the run in both frameworks unless a timeout is configured; timeout ownership differs (failure-analysis.md F-06).
+- LangGraph's sync `step_timeout` did not interrupt a running tool (error appeared after the 4s tool returned); async did.
+- A thread-based timeout wrapper only abandons work; the worker keeps running.
+- Reading API signatures predicted the facilities (`Tool.timeout`, `Tool.sequential`, `step_timeout`) but not their semantics (late sync enforcement, retry-vs-abort); only runs revealed those.

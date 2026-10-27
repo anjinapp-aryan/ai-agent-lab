@@ -41,5 +41,9 @@ def test_scorer_flags_error_escape_as_incomplete():
 def test_live_scenario(framework, sid):
     name, run, _ = framework
     r = run(S[sid].question)
+    if name == "pydantic_ai" and sid == "S4":
+        # Documented framework default (failure-analysis.md F-01): tool exception escapes, run ends.
+        assert r.error and "ZeroDivisionError" in r.error, f"expected escaped ZeroDivisionError; got {r}"
+        return
     sc = score(S[sid], r)
     assert passed(sc), f"{name} {sid} failed {sc}; calls={r.tool_calls}; error={r.error}; answer={r.final_text!r}"
