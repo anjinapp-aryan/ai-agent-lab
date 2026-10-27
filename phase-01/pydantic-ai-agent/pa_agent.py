@@ -30,11 +30,12 @@ def build_agent(model=None, retries=1, tools=None):
     return Agent(model or default_model(), instructions=SYSTEM_INSTRUCTIONS, tools=tools or TOOLS, retries=retries)
 
 
-def run(question: str, model=None, retries=1, tools=None, run_timeout=None) -> RunResult:
+def run(question: str, model=None, retries=1, tools=None, run_timeout=None,
+        usage_limits=None) -> RunResult:
     agent = build_agent(model, retries, tools)
     result = RunResult(final_text="")
     try:
-        out = agent.run_sync(question, usage_limits=UsageLimits(request_limit=MAX_STEPS), timeout=run_timeout)
+        out = agent.run_sync(question, usage_limits=usage_limits or UsageLimits(request_limit=MAX_STEPS), timeout=run_timeout)
         result.final_text = str(out.output)
         _fill(result, out.all_messages())
     except Exception as e:  # tool exception / exhausted retries / usage limit escape the agent

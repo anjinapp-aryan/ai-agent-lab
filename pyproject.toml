@@ -18,7 +18,7 @@ dependencies = [
 dev = ["pytest>=9", "pytest-asyncio>=1.3"]
 
 [tool.pytest.ini_options]
-pythonpath = ["phase-01", "phase-01/common", "phase-01/langgraph-agent", "phase-01/pydantic-ai-agent"]
+pythonpath = ["phase-02", "phase-02/common", "phase-01", "phase-01/common", "phase-01/langgraph-agent", "phase-01/pydantic-ai-agent"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = ["live: needs a real model provider configured in .env (skipped otherwise)"]

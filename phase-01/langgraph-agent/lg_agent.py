@@ -48,13 +48,14 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
     return compiled
 
 
-def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None) -> RunResult:
+def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None,
+        recursion_limit=None) -> RunResult:
     graph = build_graph(model, handle_tool_errors, tools, step_timeout)
     result = RunResult(final_text="")
     messages = []
     try:
         out = graph.invoke({"messages": [HumanMessage(question)]},
-                           {"recursion_limit": 2 * MAX_STEPS + 1})
+                           {"recursion_limit": recursion_limit or 2 * MAX_STEPS + 1})
         messages = out["messages"]
     except GraphRecursionError as e:
         result.error = f"GraphRecursionError: {e}"
