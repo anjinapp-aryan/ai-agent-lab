@@ -40,4 +40,4 @@ Docs in `phases/phase-01/` (comparison, failure-analysis, observations, evaluati
 
 ## State
 
-Local git repo on branch `phase-01`, remote `origin` = github.com/anjinapp-aryan/ai-agent-lab (was empty), nothing committed yet. Live eval ran on Groq (openai/gpt-oss-120b; Gemini 3.6 tool calls via LangGraph returned 400); check `phases/phase-01/phase-1-decision.md` for current limitations.
+Branch `phase-01` is pushed to `origin` (github.com/anjinapp-aryan/ai-agent-lab); `main` does not exist on the remote yet. Phase 1 verdict is GO WITH LIMITATIONS: live eval ran once on Groq `openai/gpt-oss-120b` (11/12; Pydantic AI aborts on a tool exception by design). Gemini 3.6 tool calls through LangGraph return HTTP 400, so use Groq for live runs. Still unverified: Langfuse export (no keys), tool timeouts, parallel tool calls. See `phases/phase-01/phase-1-decision.md`.
