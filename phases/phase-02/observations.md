@@ -25,3 +25,28 @@
 ## Method lessons
 - A scripted model is not enough to know what the provider receives; a mock transport under the real client is. It exposed the `strict` flag and the serialization difference with zero API cost.
 - Hypotheses written first made the surprises countable.
+
+---
+
+# Batch 2 observations
+
+## Architect questions answered by Batch 2
+| Question | Answer from experiments |
+|---|---|
+| Retry: what exactly gets retried? | Depends on who retries: the model re-issues the call (M), LangGraph `RetryPolicy` re-runs the whole node (F), or the tool retries itself (T). |
+| Error handling: who owns the error? | The framework wraps it; recoverability is configuration/opt-in; neither knows if the side effect happened. |
+| Timeout: what layer owns it? | The framework owns the wait only; sync work continues in its thread, async work is cancelled. |
+| Idempotency: who prevents duplicate side effects? | Only the backend/tool, with a stable key committed atomically. Neither framework. |
+| Dependency of effect on retry owner | model, framework and caller retries can all duplicate. |
+
+## Surprises (Expected ≠ Actual)
+1. A pydantic `ValidationError` raised inside a tool body is a model-visible retry in Pydantic AI (predicted: escape).
+2. LangGraph's `RetryPolicy` is inert under the default error handler; it re-runs the whole node, repeating already-successful calls in the batch.
+3. A sync tool keeps running after both frameworks report a timeout.
+4. `Tool(sequential=True)` accidentally hides a non-atomic guard's race.
+5. The model reused the idempotency key 8/8 times but also reused the *same invented key text* across unrelated runs.
+6. The wording of an error (`... Please fix your mistakes.` vs a bare `ModelRetry` message that states the order was created) changed whether the model retried.
+
+## Method lessons
+- Separating (M)/(F)/(T) retry mechanisms explained what looked like contradictory "the framework retries" claims.
+- Setting the side effect *before* the failure in the fixture is what exposes the duplicate; a failure before the effect hides it.

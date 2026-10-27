@@ -28,7 +28,7 @@ def default_model():
     return ChatOpenAI(model=cfg.model_name, api_key=cfg.api_key, base_url=cfg.base_url, temperature=0)
 
 
-def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None):
+def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None, retry_policy=None):
     """handle_tool_errors is passed to ToolNode; see failure-analysis.md for what it changes."""
     tools = tools or TOOLS
     llm = (model or default_model()).bind_tools(tools)
@@ -39,7 +39,7 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
 
     g = StateGraph(MessagesState)
     g.add_node("agent", agent_node)
-    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors))
+    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors), retry_policy=retry_policy)
     g.add_edge(START, "agent")
     g.add_conditional_edges("agent", tools_condition)  # -> "tools" or END
     g.add_edge("tools", "agent")
@@ -49,8 +49,8 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
 
 
 def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None,
-        recursion_limit=None) -> RunResult:
-    graph = build_graph(model, handle_tool_errors, tools, step_timeout)
+        recursion_limit=None, retry_policy=None) -> RunResult:
+    graph = build_graph(model, handle_tool_errors, tools, step_timeout, retry_policy)
     result = RunResult(final_text="")
     messages = []
     try:

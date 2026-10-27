@@ -22,3 +22,25 @@ Experiment 6 (tool exceptions) and 7 (timeouts) are Batch 2; Phase 1 already est
 - **Who stops runaway tool execution?** The framework, with different units; Pydantic AI has the finer control (per tool-call count), LangGraph only a step count.
 - **State after the stop:** Pydantic AI messages remain obtainable with `capture_run_messages` (9 messages at limit 3). LangGraph's error carries no state; a checkpointer might preserve it (not tested).
 - A `GraphRecursionError`/`UsageLimitExceeded` is an exception to the caller, not a message to the model: the model gets no chance to wrap up. Our `run()` wrappers convert it to `RunResult.error`.
+
+---
+
+# Batch 2 additions: exceptions, three retry mechanisms, ownership
+
+## Exceptions
+| Config | Behavior |
+|---|---|
+| LangGraph default | every exception class (`ValueError`, `RuntimeError`, `TimeoutError`, pydantic `ValidationError`, `ToolException`, even `ModelRetry`) becomes an error ToolMessage; run continues |
+| LangGraph `handle_tool_errors=False` | every class escapes and ends the run |
+| LangGraph `handle_tool_errors=(ValueError,)` | only `ValueError`; pydantic `ValidationError` (wrapped as `ToolInvocationError`) is not matched |
+| Pydantic AI default | `ValueError`, `RuntimeError`, `TimeoutError`, `ToolException` escape; pydantic `ValidationError` and `ModelRetry` are model-visible |
+
+Neither framework classifies errors as recoverable vs terminal automatically; the decision is configuration (LangGraph) or opt-in exception type (Pydantic AI).
+
+## Who retries? (keep these apart)
+- (M) model-requested: the model sees the error and calls again. LangGraph: no budget (step cap). Pydantic AI: `retries`/`ModelRetry` budget.
+- (F) framework-automatic: LangGraph `RetryPolicy` re-runs the *node* without a model call, but only if the error handler does not swallow the exception first, and only for `retry_on` classes (default skips `RuntimeError`/`ValueError`). Pydantic AI has no equivalent for plain exceptions.
+- (T) tool-internal: invisible to the framework (3 runs, 2 model calls).
+- Caller-level: re-running the whole run (needed for Pydantic AI plain exceptions).
+
+Who owns the error: the framework turns it into a message or an exception; the model or the caller decides what happens next. Who owns the *effect state*: nobody except the backend.
