@@ -44,3 +44,17 @@ No overall winner. The notable design point is that defaults diverge exactly at 
 | Forged identity args (tool without those params) | dropped; trusted identity applies | rejected before tool body |
 | Tool output delivery | verbatim string / JSON text | verbatim string / compact JSON text |
 | Injection protection | none | none |
+
+## Batch 4 additions
+| Aspect | LangGraph (1.2.18) | Pydantic AI (2.62.0) |
+|---|---|---|
+| Batched sync tools | thread pool, parallel | worker threads, parallel |
+| Batched async tools | `ainvoke`: one thread, concurrent; `invoke`: cannot run them | `run`/`run_sync`: one thread, concurrent |
+| Sequential control | no native equivalent (only `max_concurrency=1` on sync `invoke`) | `Tool(sequential=True)`, `sequential` mode |
+| Tool concurrency cap | `config["max_concurrency"]` (sync `invoke` only) | none per run; `Agent(max_concurrency)` limits runs |
+| Result order | call order | call order |
+| Escaping failure, sync siblings | waits for them, then raises | returns at once; siblings finish later |
+| Escaping failure, async siblings | cancelled | cancelled |
+| Cancel run | async tools cancelled; sync tools finish | same |
+| Dependency awareness | none | none |
+| Shared-state / dedup / identity isolation | application's job | application's job |

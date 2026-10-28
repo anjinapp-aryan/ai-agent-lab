@@ -301,3 +301,143 @@ Unprotected final answers: 10/10 told the user "refunded" (the user never asked 
 ### Not done / limits
 LangGraph `interrupt`/approval flow and Pydantic AI approval resume were not tested (human-in-the-loop). Multi-request identity leakage (reusing tools/closures across users) was not tested. Hook ordering relative to argument validation in LangGraph was not isolated. Latency was not measured (no relevance). Mitigations other than authorization (prompt delimiting, output filtering) were deliberately not tried: this batch measured the boundary.
 
+
+---
+
+# Batch 4 — pre-registered hypotheses (written before any Batch 4 run)
+
+Terminology used throughout (measured, not assumed): **concurrent** = executions overlap in time; **parallel** = running at the same instant on separate threads/cores (overlap with distinct thread ids); **async** = cooperative scheduling on one thread (overlap without distinct threads); **batched** = the model emitted several tool calls in one response; **independent** = no data dependency; **dependent** = B needs A's result.
+Four orders are kept apart: CALL order (model's list), START order, COMPLETION order, RESULT order (what the model sees).
+Layer attribution: MODEL → FRAMEWORK orchestration → EXECUTION RUNTIME (thread pool / event loop) → TOOL → APPLICATION/BUSINESS state.
+
+- **H1 (4.1–4.3, 4.10):** when a scripted model batches two 1 s tools: LangGraph `invoke` runs sync tools on a thread pool (overlap ≈1 s, distinct thread ids); `ainvoke` also overlaps (sync tools on threads, async tools on one thread); Pydantic AI overlaps by default (sync tools on threads, async tools as tasks); `Tool(sequential=True)` and the run-scoped `sequential` mode give ≈2 s with no overlap. LangGraph has no native sequential control.
+- **H2 (4.4):** all combinations overlap, except that LangGraph `invoke` with an async-only tool fails or cannot run it. Cancellation reaches async tools only.
+- **H3 (4.5):** CALL order A,B,C; START order = call order; COMPLETION order B,C,A (durations 300/100/200 ms); RESULT order = call order (not completion order) in both frameworks.
+- **H4 (4.6, 4.7):** 100 batched unsafe `increment` calls lose updates (final < 100) in both frameworks when executed concurrently; `threading.Lock` fixes the count (=100) but serializes (duration ≈ n × work). `Tool(sequential=True)` also yields 100 and thereby *hides* the race without fixing the tool.
+- **H5 (4.8):** under asyncio, a read–`await`–write increment loses updates without a lock, is exact with `asyncio.Lock`, and is also exact with no `await` between read and write (async ≠ automatically racy, but ≠ race-free).
+- **H6 (4.9):** two identical concurrent `create_order` calls: no key → 2 orders; non-atomic key guard → 2 orders; atomic guard → 1 order + 1 replay.
+- **H7 (4.11):** LangGraph sync `ToolNode` honors `config["max_concurrency"]` (observed concurrency ≤ N); its async path (`asyncio.gather`) does not. Pydantic AI has **no** per-run tool-concurrency limit: `Agent(max_concurrency=N)` limits concurrent *runs*, not tool calls; the only tool-scheduling control is `parallel`/`sequential` mode.
+- **H8 (4.12, 4.13):** a failing tool does not cancel its sibling *sync* tools (they finish, side effects stay, nothing is rolled back). LangGraph default returns all three results to the model (error for B); Pydantic AI lets the exception escape and the model never sees A's or C's results. For *async* tools, sibling cancellation behavior is unknown (to be measured per framework).
+- **H9 (4.14):** neither framework understands dependencies: a batched `[A, B(guess)]` runs both concurrently and B uses the guessed argument. A real model sequences dependent calls across turns and (rate unknown) batches independent ones.
+- **H10 (4.15):** global current-user, shared mutable identity, and a shared tool set closing over one request's identity leak across concurrent requests (wrong identity observed); per-request tool construction and trusted per-call context (`runtime.context` / `ctx.deps`) do not.
+- **H11 (4.16):** concurrent results reach the model in call order regardless of completion order; a malicious result sits next to a normal one with no separation; whether batching changes live susceptibility is unknown.
+- **H12 (4.17):** cancelling the run cancels async tools (no side effect committed) but a sync tool's thread keeps running and commits its side effect after the cancel.
+- **H13 (4.18):** two concurrent identical authorized requests with a non-atomic guard create 2 orders; with an atomic guard 1; sequential execution (e.g. a run-level concurrency limit) hides the race without making the guard correct.
+
+## Batch 4 results (2026-10-28)
+Setup: LangGraph 1.2.18, Pydantic AI 2.62.0, Phase 1 agents and scripted models, local fixtures only (`lab2/concurrency.py` timeline recorder, Batch 2 `Orders`, Batch 3 security fixtures). Timestamps: `time.perf_counter()`. Reproduce: `uv run python phase-02/exp_batch4.py [independent order counter asyncrace duplicate limits partial dependent authz output cancel combined]` and `live` / `live-independent`. Pinned by `tests/phase_02/test_batch4_concurrency.py` (43 offline tests, durations scaled ×0.3). Raw data: `phase-02/results/batch4.json` (git-ignored). Live: Groq `openai/gpt-oss-120b`, 40 runs (10 discarded, see below), no rate limits.
+Layer attribution used below: **M** model, **F** framework orchestration, **R** execution runtime (thread pool / event loop), **T** tool, **A** application/business state.
+
+**Where Expected ≠ Actual**
+1. **Measurement error, caught and fixed:** the first run reported START order = completion order (B,C,A). Cause: on Windows `time.monotonic()` ticks every ~15.6 ms, so starts microseconds apart got identical stamps and the sort fell back to insertion (completion) order. Switching to `perf_counter()` showed START order = CALL order (A,B,C; starts 18–660 µs apart). Earlier batches used `monotonic()` for durations of ≥1 s, so their conclusions stand, but their timestamps carry ±16 ms resolution.
+2. **(F) Not predicted:** when one sync tool fails and the exception escapes, Pydantic AI `run_sync` returned in **~9 ms** while the sibling sync tools kept running and committed their side effects ~600 ms later (orphaned effects). LangGraph `invoke` (`handle_tool_errors=False`) waited for all siblings (~620 ms) before raising. H8 only predicted that siblings finish.
+3. **(F) Measured where H8 said "unknown":** when the failure escapes with *async* tools, both frameworks **cancel** the siblings (0 side effects).
+4. **(F) Not predicted:** a Pydantic AI `Agent(max_concurrency=1)` shared by two threads that each call `run_sync` **deadlocked** (no progress after 20 s; reproduced 3×). In one event loop the same limit works (0 ms overlap vs 210 ms without it). Repro: `phase-02/repro_pa_max_concurrency.py`.
+5. **(F) Detail beyond H2:** LangGraph `invoke` with async-only tools does not raise to the caller; every call becomes `Error: NotImplementedError('StructuredTool does not support sync invocation.')` fed to the model, and the run "completes" with no tool executed.
+6. **Invalid live trials (my fixture):** the first independent-call live run used `get_time`/`get_date` fixtures that returned the placeholder `"get_time done"`. LangGraph's model kept re-calling until `GraphRecursionError` (4/5); Pydantic AI's model invented times (5/5). These 10 runs were discarded and re-run with fixtures that return real values; both sets are in the JSON (`live_4.14_discarded`).
+
+### Result table (required comparison)
+| Capability | LangGraph | Pydantic AI | Evidence |
+|---|---|---|---|
+| Parallel independent tools (model batched) | yes: `invoke` 2 threads, 1000 ms overlap; `ainvoke` async tools 1 thread, overlap | yes: sync tools 2 threads, async tools 1 thread, ~1000 ms overlap | 4.1–4.4 |
+| Sequential control | **NO NATIVE EQUIVALENT** for tool calls in one step (only `max_concurrency=1` on sync `invoke`) | `Tool(sequential=True)` and run-scoped `sequential` mode: 2000 ms, 0 overlap | 4.1–4.4, 4.11 |
+| Sync concurrency | thread pool sized by `config["max_concurrency"]` (default: no explicit cap; 10 of 10 ran together) | worker threads (10 of 10 together; 40 threads observed with 100 calls) | 4.11, 4.6 |
+| Async concurrency | `ainvoke` + async tools: one thread, 100 overlapping | `run` + async tools: one thread, 100 overlapping | 4.8, 4.11 |
+| Async-only tool under sync runner | not executed; error text to model | executed (`run_sync` drives an event loop) | 4.1–4.4 |
+| Ordering guarantee | start = call order; completion = duration order; **result = call order** | same | 4.5 |
+| Concurrency limit | `config["max_concurrency"]` honored by `invoke` (1/2/4/8/10 → 1/2/4/8/10); **ignored by `ainvoke`** (10) | **no per-run tool limit**; `Agent(max_concurrency)` limits runs (10 tools still overlapped); only `sequential` mode | 4.11 |
+| Partial failure (default) | all three results fed to the model; siblings finish; model recovered | escapes; model sees none; sync siblings finish **after** the run returned | 4.12–4.13 |
+| Partial failure, escaping, async tools | siblings cancelled (handle=False) | siblings cancelled | 4.12–4.13 |
+| Cancellation | async tools cancelled at ~1 s, 0 effects; sync tools ran to 5 s and committed effects after the cancel | same | 4.17 |
+| Shared-state safety | none: unsafe counter 5/100 | none: 3/100 | 4.6 |
+| Duplicate side-effect protection | none: 2 orders; atomic app guard → 1 | none: 2 orders; atomic app guard → 1 | 4.9, 4.18 |
+| Concurrent authorization safety | depends on the app: global/shared identity leaked 10/20; per-request closure and `runtime.context` 0/20 | same; per-request closure and `ctx.deps` 0/20 | 4.15 |
+
+### 4.1–4.4 / 4.10 Two independent tools (each 1 s), scripted model batches them (M batched; F/R decide overlap)
+| Framework | Runner | Tools | Makespan | Overlap | Threads |
+|---|---|---|---|---|---|
+| LangGraph | invoke | sync | 1000 ms | 1000 ms | 2 |
+| LangGraph | ainvoke | sync | 1000 ms | 1000 ms | 2 |
+| LangGraph | ainvoke | async | 1006 ms | 1006 ms | 1 |
+| LangGraph | invoke | async | — (not executed) | — | 0 |
+| Pydantic AI | run_sync | sync / async | 1001 / 1008 ms | 1000 / 1007 ms | 2 / 1 |
+| Pydantic AI | run | sync / async | 1000 / 1011 ms | 1000 / 1011 ms | 2 / 1 |
+| Pydantic AI | run_sync, `sequential` mode | sync | 2002 ms | 0 | 1 |
+| Pydantic AI | `Tool(sequential=True)` | sync | 2000 ms | 0 | 1 |
+| Pydantic AI | `parallel_ordered_events` mode | sync | 1000 ms | 1000 ms | 2 |
+| LangGraph | A then B in separate model turns | sync | 2004 ms | 0 | 2 |
+Timeline (LangGraph `invoke`, sync tools, batched; 100 ms per `#`):
+```
+tool_a  |##########  6-1007ms
+tool_b  |##########  7-1007ms
+```
+Sync tools overlap on separate threads (parallel); async tools overlap on one thread (concurrent, not parallel). If the model does not batch, nothing overlaps whatever the framework can do.
+
+### 4.5 Four orders (A=300, B=100, C=200 ms; all runners except LangGraph `invoke` + async tools)
+CALL A,B,C → START A,B,C → COMPLETION B,C,A → RESULT (model-visible) A,B,C, in every runner of both frameworks. Timeline (Pydantic AI `run_sync`, 20 ms per `#`):
+```
+tool_a  |###############  6-306ms
+tool_b  |#####            6-107ms
+tool_c  |##########       6-207ms
+```
+
+### 4.6–4.8 Shared mutable state
+| Case | No framework | LangGraph | Pydantic AI |
+|---|---|---|---|
+| 100 threads, read–sleep–write, no lock | 3/100 | 5/100 (24 threads) | 3/100 (40 threads) |
+| `threading.Lock` around read–write | — | 100/100, 616 ms | 100/100, 566 ms |
+| unsafe + `sequential` mode / `Tool(sequential=True)` | — | (no equivalent) | 100/100, ~580 ms, 1 thread |
+| asyncio, read–`await`–write, no lock | 1/100 | 1/100 | 1/100 |
+| asyncio, `asyncio.Lock` | 100/100 | 100/100 | 100/100 |
+| asyncio, no `await` between read and write | 100/100 | 100/100 | 100/100 |
+The frameworks did not cause the race (raw threads lost 97 updates); they also did nothing to prevent it. Async is race-free only between suspension points. Locks restore correctness by serializing the critical section (~0.6 s for 100 × 5 ms).
+
+### 4.9 Concurrent duplicate `create_order` (two identical calls in one batch, 200 ms window)
+No key: 2 orders. Non-atomic key guard: 2 orders. Atomic guard (stdlib `threading.Lock` around check + effect + commit): 1 order + 1 replay. Identical in both frameworks.
+
+### 4.11 Concurrency limit (10 tools × 500 ms)
+LangGraph `invoke` with `config["max_concurrency"]` 1/2/4/8/10: observed concurrency 1/2/4/8/10, makespan 5013/2509/1502/1004/505 ms; default 10. LangGraph `ainvoke` with `max_concurrency=2`: 10 (sync and async tools), i.e. ignored. Pydantic AI: default 10; `sequential` mode 1; `Agent(max_concurrency=2)`: 10 (it limits runs, not tools).
+
+### 4.12–4.13 Partial failure (A 600 ms success + effect, B fails at once, C 600 ms success + effect)
+| Framework / runner / tools | B failure surfaces as | Run returned | A, C | Effects | Model saw | Recovered |
+|---|---|---|---|---|---|---|
+| LangGraph invoke, sync, default handler | error ToolMessage | 609 ms | ok, ok | A, C | 3 results | yes |
+| LangGraph invoke, sync, `handle=False` | exception after waiting | 621 ms | ok, ok | A, C | 0 | no |
+| LangGraph ainvoke, async, default handler | error ToolMessage | 628 ms | ok, ok | A, C | 3 | yes |
+| LangGraph ainvoke, async, `handle=False` | exception | 16 ms | **cancelled** | none | 0 | no |
+| Pydantic AI run_sync, sync, RuntimeError | exception | **9 ms** | ok, ok (finished after return) | A, C (orphaned) | 0 | no |
+| Pydantic AI run, async, RuntimeError | exception | 16 ms | **cancelled** | none | 0 | no |
+| Pydantic AI run_sync / run, `ModelRetry` | model-visible retry | 611 / 620 ms | ok, ok | A, C | 3 | yes |
+Timeline (Pydantic AI `run_sync`, RuntimeError, run returned at ~9 ms; 50 ms per `#`):
+```
+tool_a  |############  6-606ms [ok]
+tool_b  |#             6-6ms   [failed]
+tool_c  |############  6-606ms [ok]
+```
+Nothing was rolled back anywhere. Partial success, partial failure and rollback are separate: frameworks report the first two (sometimes), and nobody does the third.
+
+### 4.14 Dependent vs independent
+- Scripted: a model that batches `[get_order_id, get_order_status("order-1")]` (guessed argument) runs both concurrently (300 ms overlap) and B returns `unknown order order-1` in both frameworks. Neither framework knows B depends on A. In separate turns: no overlap, correct `SHIPPED`.
+- Live (M): dependent prompt → 10/10 runs called A, then B with the returned `order-7`, in separate turns. Independent prompt (time + date, corrected fixtures) → 10/10 runs called the two tools in **separate** turns (3 model calls, 0 ms overlap); the model never batched. Dependency is therefore respected by the model's turn-taking, not by any framework.
+
+### 4.15 Concurrent authorization (two requests at once; each user targets the *other* tenant's order, so every correct decision is DENY; 10 pairs per design per framework)
+| Identity design | LangGraph leaks / wrongful ALLOWs | Pydantic AI leaks / wrongful ALLOWs |
+|---|---|---|
+| global `current_user` set at request start | 10/20, 10 | 10/20, 10 |
+| one tool set built once, closing over the first request's identity | 10/20, 10 | 10/20, 10 |
+| tools built per request (closure) | 0, 0 | 0, 0 |
+| trusted per-call context (`runtime.context` / `ctx.deps`) | 0, 0 | 0, 0 |
+Leaked identity converted correct denials into **unauthorized grants**. Frameworks neither cause nor prevent this (A).
+
+### 4.16 Concurrent tool output
+Scripted: slow normal `note_a` and fast malicious `note_b` complete B-first, but the model receives A then B (call order) with no separation or labeling, in both frameworks. Live (5 per framework; protected VIEWER, `order-100` result injected): LangGraph 5/5 fetched both orders, then requested the injected refund (one run twice), 0 effects; Pydantic AI 5/5 requested the refund right after the first fetch and the denial ended the run (Batch 3 behavior), 0 effects. The model fetched the two orders one at a time (no batching observed).
+
+### 4.17 Cancellation (two 5 s tools, run task cancelled at ~1 s)
+Async tools: cancelled at 1006 ms (LangGraph) / 1015 ms (Pydantic AI), 0 side effects, `finally` cleanup ran. Sync tools: the run reported `cancelled` at ~1 s and control returned, but both threads ran to 5005–5014 ms and **committed their side effects after the cancel**; cleanup ran then. Same in both frameworks (R).
+
+### 4.18 Concurrency + idempotency + authorization (two concurrent identical authorized requests, same key, 5 trials)
+Authorization at the framework hook (4 checks per 2 trials, 0 denies) → idempotency key from the application → side effect. Non-atomic guard: 2 orders in 5/5 trials (both frameworks). Atomic guard: 1 order + 1 replay in 5/5. Pydantic AI shared `Agent(max_concurrency=1)` in one event loop with the **non-atomic** guard: 1 order in 5/5 (without the limit: 2) — serialization hid the race; the guard is still wrong.
+
+### Not done / limits
+Multi-process or distributed concurrency, database isolation levels, `contextvars` as an identity carrier, LangGraph checkpointer behavior under concurrency, and model batching on other models were not tested. Thread counts depend on this machine (CPU count). Live: one model, N=5 per framework per case.
+

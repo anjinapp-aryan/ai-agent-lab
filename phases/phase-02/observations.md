@@ -78,3 +78,43 @@
 ## Method lessons
 - Counting `authz_checks == tool calls` turned "every call is authorized" into a testable claim.
 - Separating scripted (does the boundary hold?) from live (does the model attempt the action?) kept framework and model findings apart.
+
+---
+
+# Batch 4 observations
+
+## Architect questions answered by Batch 4
+| Question | Answer from experiments |
+|---|---|
+| When do tools run concurrently? | Only when the model batches them; then by default in both frameworks (threads for sync, one event loop for async). |
+| Who controls concurrency? | Model (batching), framework (whether/limits), runtime (threads vs loop). |
+| Is result order guaranteed? | Model sees call order; completion order differs. |
+| Can shared state race / does async help? | Yes / no (only between suspension points). |
+| Who prevents duplicate effects under concurrency? | An atomic business/data guard; sequential execution only hides the race. |
+| What happens to siblings on failure / cancel? | Sync siblings always finish and commit; async siblings are cancelled when the failure escapes. |
+| Who enforces dependency order? | The model's turn-taking or the application; never the framework. |
+| Can identity leak across concurrent requests? | Yes with global/shared identity; no with per-request or framework per-call context. |
+
+## Concurrency guarantees by layer (question 17)
+| Layer | Guarantees observed | Does not guarantee |
+|---|---|---|
+| LLM | whether calls are batched; turn-by-turn dependency handling (10/10 live) | batching independent calls (0/10 live) |
+| Framework | runs a batch together; result order = call order; limits (LangGraph sync `max_concurrency`, Pydantic AI `sequential`) | dependency awareness, shared-state safety, dedup, rollback, identity isolation |
+| Runtime | threads (parallel, uncancellable) or event loop (concurrent, cancellable) | atomicity |
+| Tool | whatever it implements (locks, async) | anything about other tools |
+| Application | request-scoped identity, locks, atomic idempotency | — |
+| Database | (not tested here; the atomic boundary in production) | — |
+
+## Surprises (Expected ≠ Actual)
+1. Windows `time.monotonic()` (~15.6 ms ticks) made start order look like completion order until switched to `perf_counter()`.
+2. Pydantic AI `run_sync` returned in ~9 ms after a sibling failure while the other sync tools committed effects later.
+3. Escaping failures cancel async siblings in both frameworks.
+4. A shared `Agent(max_concurrency=1)` deadlocked across threads calling `run_sync`.
+5. LangGraph `invoke` turns async-only tools into silent error messages.
+6. The live model never batched independent calls, so framework parallelism was unused in practice.
+7. A placeholder fixture result ("get_time done") made one model loop to the step cap and the other invent times; those runs were discarded.
+
+## Method lessons
+- Use a high-resolution clock for ordering; verify suspicious orderings before believing them.
+- A no-framework control (raw threads, plain `asyncio.gather`) separated "framework causes it" from "the runtime does it".
+- Fixtures must return realistic values in live trials, or the model's behavior measures the fixture.

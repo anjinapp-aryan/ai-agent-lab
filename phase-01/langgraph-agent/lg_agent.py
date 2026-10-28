@@ -51,7 +51,7 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
 
 def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None,
         recursion_limit=None, retry_policy=None, wrap_tool_call=None, context=None, context_schema=None,
-        configurable=None) -> RunResult:
+        configurable=None, max_concurrency=None) -> RunResult:
     graph = build_graph(model, handle_tool_errors, tools, step_timeout, retry_policy, wrap_tool_call, context_schema)
     result = RunResult(final_text="")
     messages = []
@@ -59,6 +59,8 @@ def run(question: str, model=None, handle_tool_errors=True, tools=None, step_tim
         cfg = {"recursion_limit": recursion_limit or 2 * MAX_STEPS + 1}
         if configurable:
             cfg["configurable"] = configurable
+        if max_concurrency:
+            cfg["max_concurrency"] = max_concurrency
         kw = {"context": context} if context is not None else {}
         out = graph.invoke({"messages": [HumanMessage(question)]}, cfg, **kw)
         messages = out["messages"]

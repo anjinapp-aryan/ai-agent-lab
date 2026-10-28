@@ -8,7 +8,7 @@ Audit and design: [audits/phase-02/](../../audits/phase-02/). Hypotheses and res
 | 1 | 1 schema, 2 missing arg, 3 wrong type, 4 extra arg, 5 enum, 11 result validation, 14 limits | **done** (scripted + wire-level, 0 live trials) |
 | 2 | 6 exception, 7 timeout, 8 duplicate, 9 create_order | **done** (scripted; live H14 only: 10 runs on Groq `openai/gpt-oss-120b`) |
 | 3 | 10 authorization, 12 output injection | **done** (scripted + 54 live runs; 43 + 2 tests) |
-| 4 | 13 parallel/dependent | not started |
+| 4 | 13 parallel/dependent (+ races, limits, partial failure, cancellation, concurrent authz) | **done** (scripted + 40 live runs, 10 discarded; 43 tests) |
 | 5 | 15 tool selection (live, 5 trials per framework) | not started |
 
 ## How it is built (reuse)
@@ -26,7 +26,9 @@ uv run python phase-02/exp_batch2.py trace langgraph|pydantic-ai   # offline spa
 uv run python phase-02/exp_batch2.py live        # H14, 5 trials per framework, Groq quota
 uv run python phase-02/exp_batch3.py [basic designs resource failures bypass delivery flows]   # Batch 3, scripted
 uv run python phase-02/exp_batch3.py live       # injection trials, <=5 per framework per case, Groq quota
-uv run pytest tests/phase_02                    # 140 offline regression tests (+2 live)
+uv run python phase-02/exp_batch4.py [independent order counter asyncrace duplicate limits partial dependent authz output cancel combined]   # Batch 4
+uv run python phase-02/exp_batch4.py live       # batching/dependency/concurrent-output trials, Groq quota
+uv run pytest tests/phase_02                    # 183 offline regression tests (+2 live)
 uv run pytest                                   # everything (Phase 1 live tests use Groq quota)
 ```
 Results JSON: `phase-02/results/batch1.json` (git-ignored).
@@ -41,3 +43,12 @@ Documents: [authorization.md](authorization.md) · [tool-output-security.md](too
 - Frameworks deliver tool output verbatim and add no injection protection. Live `gpt-oss-120b` followed injected prose 20/20 (0/20 for a JSON field); with authorization enforced there were 0 side effects.
 - Denial semantics matter: Pydantic AI's plain-exception denial ended the run; LangGraph's `RetryPolicy` retried a denial 3×.
 - Limits: one model, N=5, no HITL approval flow tested, no mitigations tried. Next: Batch 4 (concurrency) only after review.
+
+## Batch 4 summary (concurrency)
+Documents: [concurrency.md](concurrency.md) · [race-conditions.md](race-conditions.md) · [partial-failure.md](partial-failure.md).
+- Concurrency is an execution property: both frameworks overlap batched tools (threads for sync, one loop for async), deliver results in call order, and do nothing for shared state, duplicates, rollback, dependencies or identity isolation.
+- Races were reproduced without any framework (3/100), under both frameworks (3–5/100), and under asyncio with an `await` in the critical section (1/100); stdlib locks fix them; sequential execution only hides them.
+- Failure/cancel: async siblings are cancelled, sync siblings always finish and commit, sometimes after the run has returned.
+- The live model never batched independent calls and always respected dependencies by taking turns.
+- Unexpected: a shared Pydantic AI `Agent(max_concurrency=1)` deadlocked across threads calling `run_sync` (`phase-02/repro_pa_max_concurrency.py`).
+- Limits: local simulation only (no DB/multi-process), one model, N=5; timestamps before Batch 4 have ~16 ms resolution. Next: Batch 5 (tool selection), only after review.

@@ -162,12 +162,20 @@ class Orders:
     between check and commit so the non-atomic race is observable. Not production-grade by design.
     """
 
-    def __init__(self, fail_first: int = 0, exc=RuntimeError, delay: float = 0.0):
+    def __init__(self, fail_first: int = 0, exc=RuntimeError, delay: float = 0.0, atomic: bool = False):
+        import threading
+        self._lock, self.atomic = threading.Lock(), atomic     # atomic=True: check+effect+commit under one lock (Batch 4)
         self.ledger, self.seen = [], {}
         self.executions = self.replays = 0
         self.fail_first, self.exc, self.delay = fail_first, exc, delay
 
     def _execute(self, item: str, qty: int, key=None) -> str:
+        if self.atomic:
+            with self._lock:
+                return self._execute_inner(item, qty, key)
+        return self._execute_inner(item, qty, key)
+
+    def _execute_inner(self, item: str, qty: int, key=None) -> str:
         sig = (item, qty)
         if key is not None and key in self.seen:
             prev_sig, result = self.seen[key]
