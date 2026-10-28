@@ -8,6 +8,7 @@ class ToolCallRecord:
     args: dict
     result: str | None = None   # stringified tool output
     error: str | None = None    # tool error / validation error text shown to the model
+    call_id: str | None = None  # provider tool-call id (links the model's request to the tool result)
 
 
 @dataclass

@@ -58,3 +58,18 @@ No overall winner. The notable design point is that defaults diverge exactly at 
 | Cancel run | async tools cancelled; sync tools finish | same |
 | Dependency awareness | none | none |
 | Shared-state / dedup / identity isolation | application's job | application's job |
+
+## Batch 5 additions (tool selection)
+| Aspect | LangGraph (1.2.18) | Pydantic AI (2.62.0) |
+|---|---|---|
+| Tool order on the wire | declaration order | declaration order |
+| Default request envelope | no `tool_choice`, no `strict`, no `additionalProperties` | `tool_choice:"auto"`, `strict:true`, `additionalProperties:false` |
+| Default temperature (Phase 1 agent) | 0 | not sent (provider default) — equalized to 0 for Batch 5 |
+| `tool_choice` control | `bind_tools(tool_choice=...)` | `ModelSettings.tool_choice` via capability; static `required` → `UserError` |
+| `required` on every step | `GraphRecursionError` | `UsageLimitExceeded` |
+| Unknown tool name | error listing valid tools, run continues | "Unknown tool name … Available tools", run continues |
+| Live selection (gpt-oss-20b) | identical to PA in every case except 5.10 | identical to LG except 5.10 |
+| 5.10 missing capability | honest refusal 5/5 | pretended capability 5/5 — caused by `additionalProperties:false` (ablation) |
+| Restricted tool denied by plain exception | model explains the denial | run ends; message history lost |
+
+Selection is model-side **given identical requests**; the frameworks' request defaults are not identical and can change model behavior.

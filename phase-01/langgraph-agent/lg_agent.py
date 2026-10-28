@@ -79,7 +79,7 @@ def _fill(result: RunResult, messages) -> None:
         if isinstance(m, AIMessage):
             result.llm_calls += 1
             for tc in m.tool_calls:
-                rec = ToolCallRecord(tc["name"], tc["args"])
+                rec = ToolCallRecord(tc["name"], tc["args"], call_id=tc["id"])
                 by_id[tc["id"]] = rec
                 result.tool_calls.append(rec)
         elif isinstance(m, ToolMessage) and m.tool_call_id in by_id:

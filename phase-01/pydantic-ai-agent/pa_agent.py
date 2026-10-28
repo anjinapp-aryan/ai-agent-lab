@@ -55,7 +55,7 @@ def _fill(result: RunResult, messages) -> None:
             result.llm_calls += 1
             for p in m.parts:
                 if isinstance(p, ToolCallPart):
-                    rec = ToolCallRecord(p.tool_name, p.args_as_dict())
+                    rec = ToolCallRecord(p.tool_name, p.args_as_dict(), call_id=p.tool_call_id)
                     by_id[p.tool_call_id] = rec
                     result.tool_calls.append(rec)
         elif isinstance(m, ModelRequest):
