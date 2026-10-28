@@ -34,9 +34,10 @@ class Trajectory:
 
     def accounting(self):
         """Counts from each vantage point. Deliberately NOT merged into one 'iteration' number."""
-        responses = self.of("model_response")
+        responses = [e for e in self.of("model_response") if e.get("status", 200) == 200]
         return {
             "model_requests": len(self.of("model_request")),
+            "http_errors": sum(1 for e in self.of("model_response") if e.get("status", 200) != 200),
             "model_responses_with_tool_calls": sum(1 for e in responses if e["tool_calls"]),
             "tool_calls_requested": sum(len(e["tool_calls"]) for e in responses),
             "tool_executions": len(self.of("tool_end")),
@@ -53,6 +54,8 @@ class Trajectory:
                 lines.append(f"{e['t_ms']:>8} ms  WIRE  -> request #{e['n']}: {e['n_messages']} messages {e['roles']}")
             elif k == "model_response":
                 what = ", ".join(f"{c['name']}({c['args']})" for c in e["tool_calls"]) or f"text {e['text'][:50]!r}"
+                if e.get("status", 200) != 200:
+                    what = f"HTTP {e['status']} (no completion)"
                 lines.append(f"{e['t_ms']:>8} ms  WIRE  <- response #{e['n']}: {what} [finish={e['finish_reason']}]")
             elif k == "tool_start":
                 lines.append(f"{e['t_ms']:>8} ms  TOOL  start {e['tool']}({e['args']})")

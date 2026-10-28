@@ -58,7 +58,8 @@ def run_langgraph(question, model, traj):
         elif chunk["type"] == "task_result":
             traj.add("framework_step", "framework", step=chunk["step"], label=f"node '{chunk['payload']['name']}' finished", state="")
     msgs = final["messages"]
-    return {"final_text": msgs[-1].content, "state_messages": [type(m).__name__ for m in msgs], "super_steps": max(e["step"] for e in traj.of("framework_step"))}
+    return {"final_text": msgs[-1].content, "state_messages": [type(m).__name__ for m in msgs], "super_steps": max(e["step"] for e in traj.of("framework_step")),
+            "_raw": final}
 
 
 def run_pydantic_ai(question, model, traj):
@@ -76,7 +77,7 @@ def run_pydantic_ai(question, model, traj):
             return run
     run = asyncio.run(go())
     return {"final_text": str(run.result.output), "state_messages": [type(m).__name__ for m in run.result.all_messages()],
-            "run_step": run.ctx.state.run_step, "usage_requests": run.usage.requests, "usage_tool_calls": run.usage.tool_calls}
+            "run_step": run.ctx.state.run_step, "usage_requests": run.usage.requests, "usage_tool_calls": run.usage.tool_calls, "_raw": run}
 
 
 RUNNERS = {"langgraph": run_langgraph, "pydantic-ai": run_pydantic_ai}
@@ -103,6 +104,7 @@ def one(exp, fw, question, transport, trial=1, mode="offline"):
     err = None
     try:
         info = RUNNERS[fw](question, model, traj)
+        info.pop("_raw", None)
     except Exception as e:  # noqa: BLE001
         info, err = {}, f"{type(e).__name__}: {e}"
     d = {"exp": exp, "framework": fw, "mode": mode, "trial": trial, "question": question, "wall_ms": round((time.perf_counter() - t0) * 1000, 1),
