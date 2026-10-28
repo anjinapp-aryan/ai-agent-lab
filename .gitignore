@@ -9,3 +9,5 @@ __pycache__/
 phase-01/results/*.json
 phase-02/results/*.json
 phase-02/results/*.log
+phase-03/results/*.json
+phase-03/results/*.log
