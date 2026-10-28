@@ -4,8 +4,9 @@
 |---|---|---|
 | 0 | Ecosystem + license audit, stack decision | Done (GO WITH LIMITATIONS) |
 | 1 | Same agent in LangGraph and Pydantic AI, tracing, eval, closure experiments | GO WITH LIMITATIONS (Langfuse export blocked; see phases/phase-01/phase-1-decision.md) |
-| 2 | Deep Tool Calling: audit done; Batches 1-5 done (experiments 1-15, tool selection included); awaiting review (phases/phase-02) | In progress |
-| 3 | Memory (Mem0 vs Graphiti vs LangMem comparison) | Planned |
+| 2 | Deep Tool Calling: audit + Batches 1-5 (experiments 1-15, tool selection included) (phases/phase-02) | Closed |
+| 3 | Agent loop / ReAct execution: 3.0 reuse audit done (phases/phase-03); 3.1 experiments not started | 3.0 GO WITH LIMITATIONS |
+| — | Memory (Mem0 vs Graphiti vs LangMem comparison); the Phase 3 brief names Phase 4 = State & Context, so later rows are to be re-sequenced at review | Planned |
 | 4 | MCP client/server usage; A2A interop | Planned |
 | 5 | Multi-agent, planning, reflection, routing | Planned |
 | 6 | Reliability: durable execution (DBOS/Temporal), failure injection | Planned |
