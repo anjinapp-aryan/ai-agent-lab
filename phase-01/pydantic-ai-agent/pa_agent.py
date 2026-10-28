@@ -25,17 +25,22 @@ def default_model():
     return OpenAIChatModel(cfg.model_name, provider=OpenAIProvider(base_url=cfg.base_url, api_key=cfg.api_key))
 
 
-def build_agent(model=None, retries=1, tools=None):
+def build_agent(model=None, retries=1, tools=None, capabilities=None, deps_type=None):
     """retries = per-tool retry budget for validation errors / ModelRetry."""
-    return Agent(model or default_model(), instructions=SYSTEM_INSTRUCTIONS, tools=tools or TOOLS, retries=retries)
+    kw = {}
+    if capabilities:
+        kw["capabilities"] = capabilities
+    if deps_type is not None:
+        kw["deps_type"] = deps_type
+    return Agent(model or default_model(), instructions=SYSTEM_INSTRUCTIONS, tools=tools or TOOLS, retries=retries, **kw)
 
 
 def run(question: str, model=None, retries=1, tools=None, run_timeout=None,
-        usage_limits=None) -> RunResult:
-    agent = build_agent(model, retries, tools)
+        usage_limits=None, deps=None, capabilities=None) -> RunResult:
+    agent = build_agent(model, retries, tools, capabilities, type(deps) if deps is not None else None)
     result = RunResult(final_text="")
     try:
-        out = agent.run_sync(question, usage_limits=usage_limits or UsageLimits(request_limit=MAX_STEPS), timeout=run_timeout)
+        out = agent.run_sync(question, usage_limits=usage_limits or UsageLimits(request_limit=MAX_STEPS), timeout=run_timeout, deps=deps)
         result.final_text = str(out.output)
         _fill(result, out.all_messages())
     except Exception as e:  # tool exception / exhausted retries / usage limit escape the agent

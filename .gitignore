@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 phase-01/results/*.json
 phase-02/results/*.json
+phase-02/results/*.log

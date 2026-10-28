@@ -28,7 +28,8 @@ def default_model():
     return ChatOpenAI(model=cfg.model_name, api_key=cfg.api_key, base_url=cfg.base_url, temperature=0)
 
 
-def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None, retry_policy=None):
+def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None, retry_policy=None,
+                wrap_tool_call=None, context_schema=None):
     """handle_tool_errors is passed to ToolNode; see failure-analysis.md for what it changes."""
     tools = tools or TOOLS
     llm = (model or default_model()).bind_tools(tools)
@@ -37,9 +38,9 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
         msgs = [SystemMessage(SYSTEM_INSTRUCTIONS)] + state["messages"]
         return {"messages": [llm.invoke(msgs)]}
 
-    g = StateGraph(MessagesState)
+    g = StateGraph(MessagesState, context_schema=context_schema)
     g.add_node("agent", agent_node)
-    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors), retry_policy=retry_policy)
+    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors, wrap_tool_call=wrap_tool_call), retry_policy=retry_policy)
     g.add_edge(START, "agent")
     g.add_conditional_edges("agent", tools_condition)  # -> "tools" or END
     g.add_edge("tools", "agent")
@@ -49,13 +50,17 @@ def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=No
 
 
 def run(question: str, model=None, handle_tool_errors=True, tools=None, step_timeout=None,
-        recursion_limit=None, retry_policy=None) -> RunResult:
-    graph = build_graph(model, handle_tool_errors, tools, step_timeout, retry_policy)
+        recursion_limit=None, retry_policy=None, wrap_tool_call=None, context=None, context_schema=None,
+        configurable=None) -> RunResult:
+    graph = build_graph(model, handle_tool_errors, tools, step_timeout, retry_policy, wrap_tool_call, context_schema)
     result = RunResult(final_text="")
     messages = []
     try:
-        out = graph.invoke({"messages": [HumanMessage(question)]},
-                           {"recursion_limit": recursion_limit or 2 * MAX_STEPS + 1})
+        cfg = {"recursion_limit": recursion_limit or 2 * MAX_STEPS + 1}
+        if configurable:
+            cfg["configurable"] = configurable
+        kw = {"context": context} if context is not None else {}
+        out = graph.invoke({"messages": [HumanMessage(question)]}, cfg, **kw)
         messages = out["messages"]
     except GraphRecursionError as e:
         result.error = f"GraphRecursionError: {e}"

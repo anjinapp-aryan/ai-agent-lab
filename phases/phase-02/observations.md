@@ -50,3 +50,31 @@
 ## Method lessons
 - Separating (M)/(F)/(T) retry mechanisms explained what looked like contradictory "the framework retries" claims.
 - Setting the side effect *before* the failure in the fixture is what exposes the duplicate; a failure before the effect hides it.
+
+---
+
+# Batch 3 observations
+
+## Architect questions answered by Batch 3
+| Question | Answer from experiments |
+|---|---|
+| Where does authorization live? | Application layer, enforced at a boundary every tool call crosses (framework hook or tool body), with the data layer as last line. |
+| Can the LLM be trusted for authorization? | No: prompt rules are not a boundary; live injection obeyed 20/20. |
+| Can tool arguments carry identity? | No: argument-supplied identity is a bypass. |
+| Tenant/resource authorization? | Needs a resource check beyond the tool permission. |
+| What does framework retry do to a denial? | `RetryPolicy` retried it 3×; model retry loops re-issue it; Pydantic AI plain exception ends the run. |
+| Is tool output trusted? | Frameworks deliver it unchanged as context; the model may obey it. |
+| Does either framework defend against injection? | No. |
+| Can authorization stop an injected second call? | Yes for unauthorized actions (0 effects), not for authorized ones. |
+
+## Surprises (Expected ≠ Actual)
+1. The model obeyed injected prose despite an explicit "only do what the user asked" instruction, 20/20.
+2. The same intent as a JSON `next_action` field (and as a JSON string) was followed 0/20.
+3. In Pydantic AI a correct denial ended the run: injection became denial-of-service for a harmless request.
+4. "Do not tell the user" was obeyed: a denied attempted refund was not disclosed in LangGraph's answers.
+5. My fixture's denial message leaked the other tenant's name.
+6. LangGraph's safety against forged identity args rests on the "drop extras" default, which differs from Pydantic AI's explicit rejection.
+
+## Method lessons
+- Counting `authz_checks == tool calls` turned "every call is authorized" into a testable claim.
+- Separating scripted (does the boundary hold?) from live (does the model attempt the action?) kept framework and model findings apart.

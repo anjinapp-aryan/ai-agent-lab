@@ -31,3 +31,16 @@ No overall winner. The notable design point is that defaults diverge exactly at 
 | Dedup of duplicate calls | none | none |
 | Serialize parallel tool calls | no knob found | `Tool(sequential=True)` |
 | Error text shown to the model | `Error: ... Please fix your mistakes.` | bare message / structured error list |
+
+## Batch 3 additions
+| Aspect | LangGraph (1.2.18) | Pydantic AI (2.62.0) |
+|---|---|---|
+| Native pre-execution interception | `ToolNode(wrap_tool_call)` | `Hooks(before_tool_execute)`, also `wrap_tool_execute` |
+| Trusted run context | `runtime.context` (`context_schema` + `invoke(context=)`) / `configurable` | `ctx.deps` (`deps_type` + `run(deps=)`) |
+| Hide tools per identity | bind only permitted tools | `prepare_tools` hook |
+| Native approval gate | `interrupt` (not tested) | `requires_approval` / deferred tool calls (default output type errors) |
+| Denial as plain exception | fed to the model; run continues | run ends |
+| Denial interacts with retry | `RetryPolicy` retries it; model may re-issue | `ModelRetry` denial invites retry; plain exception terminal |
+| Forged identity args (tool without those params) | dropped; trusted identity applies | rejected before tool body |
+| Tool output delivery | verbatim string / JSON text | verbatim string / compact JSON text |
+| Injection protection | none | none |
