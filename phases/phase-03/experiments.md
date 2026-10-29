@@ -227,3 +227,179 @@ FINAL        run.result.output == response text
 - Offline mechanics, plus only 3 live trials; no live no-tool case, because the system prompt requires tools.
 - Not tested: malformed tool-call JSON, multiple choices (`n>1`), refusals, streaming.
 - `pa_agent` uses `retries=1`; other budgets change how many re-prompts happen.
+
+---
+
+# Batch 3 — Iteration limits, retries and loop budget (hypotheses written 2026-10-29, before any Batch 3 run)
+
+Batch-local IDs follow the Batch 3 brief (`B3-3.1.11` … `B3-3.1.22`). The limit knobs:
+- **LangGraph:** `config["recursion_limit"]`.
+- **Pydantic AI:** `UsageLimits(request_limit=…, tool_calls_limit=…)` plus the agent/tool `retries` budget.
+
+Layers kept apart: application (chooses limits), framework (loop + counters), model adapter, provider client (HTTP retries; the OpenAI SDK default is `max_retries=2`), provider. Retry kinds kept apart: model-visible tool retry, framework tool retry, tool-internal retry, output re-prompt, HTTP retry.
+
+- **H3.1 (B3-3.1.11):** a final-only run needs LangGraph `recursion_limit ≥ 1` (one super-step) and Pydantic AI `request_limit ≥ 1`. The natural final response consumes one unit in both.
+- **H3.2 (B3-3.1.12):** one tool round needs LangGraph ≥ 3 (super-steps agent, tools, agent) and Pydantic AI ≥ 2 (model requests). Below that: `GraphRecursionError` / `UsageLimitExceeded`.
+- **H3.3 (B3-3.1.13):** two rounds need LangGraph ≥ 5 and Pydantic AI ≥ 3. So **LangGraph's unit is super-steps (2r+1); Pydantic AI's unit is model requests (r+1)**, and equal numbers are not comparable.
+- **H3.4 (B3-3.1.14, final-step safety):** LangGraph checks the limit *between* super-steps. When it trips after an `agent` step that requested a tool, the tool is **not** executed. When it trips after a `tools` step, the tool **was** executed and no further request is made. Pydantic AI checks `request_limit` *before each request*, so the last requested tool **is** executed and the run fails before the next request. `tool_calls_limit` is checked *before* executing a tool batch, so the tool is **not** executed.
+- **H3.5 (B3-3.1.15):** Pydantic AI's empty-output re-prompt is a real model request: it consumes `request_limit` *and* the output-retry budget. LangGraph has no re-prompt (it returns `""`).
+- **H3.6 (B3-3.1.16):** persistent empty output is stopped by the output-retry budget (`retries=N` → N+1 requests, then `UnexpectedModelBehavior`), unless `request_limit` is lower and trips first.
+- **H3.7 (B3-3.1.17):**
+  - **Pydantic AI:** a tool raising `ModelRetry` triggers a model-visible retry. Each retry is a new model request (consumes `request_limit`) and also counts against the tool's own retry budget; exhausting it raises `UnexpectedModelBehavior`. A plain exception is not retried (it escapes).
+  - **LangGraph default:** the error is fed back and the model retries, costing 2 super-steps per retry.
+  - **LangGraph `RetryPolicy`** (`handle_tool_errors=False`): the framework re-runs the tools node *inside the same super-step*. No model request, no extra super-step.
+- **H3.8 (B3-3.1.18):** a framework tool retry does **not** consume loop budget; a model-visible retry does. Pydantic AI has no native framework-only tool re-execution (all its tool retries go through the model).
+- **H3.9 (B3-3.1.19):** a transient HTTP 500 followed by 200 is retried by the provider client: 2 HTTP attempts, 1 framework model call, no extra framework step, no extra model response.
+- **H3.10 (B3-3.1.20):** at the minimum successful limit, a run with an HTTP retry still succeeds. HTTP retries do not consume loop budget in either framework.
+- **H3.11 (B3-3.1.21):** neither our LangGraph graph nor Pydantic AI warns the model or forces a final answer near the limit; requests near the limit are byte-identical in shape. The deprecated LangGraph prebuilt `create_react_agent` (installed, `langgraph-prebuilt`) uses `remaining_steps` and may return a framework-written "need more steps" message instead of raising. That is a reference observation only.
+- **H3.12 (B3-3.1.22):** side effects committed before the limit trips remain (no rollback) in both frameworks.
+
+## Batch 3 results (2026-10-29)
+**Setup.** `phase-03/exp3_batch3.py` reuses the Batch 1/2 harness and the Phase 2 failure fixtures (`make_flaky`, `Orders`).
+- New fixture `http_flaky`: the first *k* HTTP attempts return 500/429 (`retry-after-ms: 1`).
+- Runners keep partial state when a limit exception ends the run.
+- Tests: `tests/phase_03/test_batch3_limits_retries.py` (40 offline).
+- Data: `phase-03/results/batch3.json` (git-ignored).
+- Live: 6 runs on `openai/gpt-oss-120b` after the quota recovered.
+
+### Glossary (as measured)
+| Term | Meaning | Where it is counted |
+|---|---|---|
+| model request | one framework call to the model adapter | Pydantic AI `usage.requests` / `run_step`; LangGraph: count of `AIMessage`s |
+| HTTP attempt | one HTTP request on the wire | provider client (OpenAI SDK), invisible to the framework |
+| model response | one successful completion | wire (`status 200`) |
+| tool call | one call the model asked for | inside a model response |
+| tool execution | one run of a tool body | the tool itself (our `traced` log) |
+| framework step | LangGraph super-step (one node run) / Pydantic AI node | `graph.stream` / `agent.iter` |
+| model-visible tool retry | error returned to the model, which asks again | costs a new model request |
+| framework tool retry | framework re-runs the tool, no model | LangGraph `RetryPolicy`; no Pydantic AI equivalent |
+| output re-prompt | framework asks the model again after unusable output | Pydantic AI only; costs a model request |
+| HTTP retry | provider client re-sends the same request | SDK `max_retries` (default 2) |
+| iteration | **no framework defines it.** Natural unit: one model decision (= one model request) | — |
+
+### Iteration accounting (B3-3.1.11 … 3.1.14, offline; B3-live)
+| Script | LangGraph minimum `recursion_limit` | super-steps used | Pydantic AI minimum `request_limit` | requests used |
+|---|---:|---:|---:|---:|
+| final only | **2** | 1 | **1** | 1 |
+| one tool round + final | **4** | 3 | **2** | 2 |
+| two tool rounds + final | **6** | 5 | **3** | 3 |
+- **LangGraph:** a run succeeds only if `recursion_limit` **>** super-steps (= 2r+1).
+  - Cause `[V]`: `PregelLoop.tick` checks `step > stop` *before* "no tasks → done", so the tick after the finishing step is already out of budget.
+  - Consequence: at `limit == steps` the model has **already produced the final answer**, it is in the streamed state, and the run still raises `GraphRecursionError`. `invoke()` then returns no state, so the answer is lost.
+  - Observed offline and **live 2/2**: the real answer "The product of 25 and 17 is 425." was produced and discarded at limit 3; limit 4 succeeded.
+- **Pydantic AI:** `request_limit` = model requests, exactly (r+1). It is checked before each request.
+- **Comparing equal numbers is meaningless:** LangGraph 4 ≈ Pydantic AI 2 (one round); LangGraph 6 ≈ Pydantic AI 3.
+- **Phase 1 cap:** LangGraph `2*MAX_STEPS+1 = 17` allows 8 decisions; Pydantic AI `request_limit=8` allows 8. They were equivalent by construction, now verified.
+
+### Final-step safety (B3-3.1.14, endless tool calls)
+| Framework / limit | requests | tool calls requested | tool executions | last event | outcome |
+|---|---:|---:|---:|---|---|
+| LangGraph 2 / 4 / 6 (even) | 1 / 2 / 3 | 1 / 2 / 3 | 1 / 2 / 3 | tool executed | `GraphRecursionError` |
+| LangGraph 3 / 5 (odd) | 2 / 3 | 2 / 3 | **1 / 2** | **model's tool call left pending, not executed** | `GraphRecursionError` |
+| Pydantic AI `request_limit` 2…6 | n | n | **n** | the last requested tool **executed**, then the next request refused | `UsageLimitExceeded` |
+| Pydantic AI `tool_calls_limit` 0 / 1 / 2 | n+1 | n+1 | **n** | refused **before** executing; the model request was already paid for | `UsageLimitExceeded` |
+- LangGraph stops between super-steps, so whether the last *requested* tool runs depends on the parity of the limit.
+- Pydantic AI `request_limit` always lets the last tool batch run; `tool_calls_limit` never lets the excess tool run.
+
+### Retry accounting (B3-3.1.15 … 3.1.18)
+| Event | Model requests | Framework steps | Tool executions | Consumes the loop limit? |
+|---|---:|---:|---:|---|
+| Pydantic AI output re-prompt (empty → final) | +1 | +2 | 0 | **yes**: `request_limit=1` fails, 2 succeeds; also uses the output-retry budget |
+| Pydantic AI persistent empty, `retries=N` | N+1 | — | 0 | stopped by `UnexpectedModelBehavior: Exceeded maximum output retries (N)`; with `request_limit=2` and N ≥ 2, `UsageLimitExceeded` trips first |
+| Pydantic AI `ModelRetry` (tool fails once, `retries=1`) | +1 | +2 | +1 | **yes**: 3 requests total; `request_limit=2` fails. `retries=0` → `Tool 'flaky' exceeded max retries count of 0` at the first failure |
+| Pydantic AI plain `RuntimeError` | 0 | — | 0 retries | not retried: the exception escapes (1 request) |
+| LangGraph model-visible retry (default error `ToolMessage`) | +1 | **+2** | +1 | **yes**: limit 4 fails, 6 succeeds |
+| LangGraph `RetryPolicy` (framework re-runs `tools` node) | **0** | **0** | +1 per failure | **no**: 2 failures → 3 executions inside one super-step; succeeds at the minimum limit 4 |
+| LangGraph empty response | — | — | — | not a retry: `""` is returned (Batch 2) |
+
+### Provider HTTP retry accounting (B3-3.1.19 / 3.1.20)
+| Wire | HTTP attempts | Framework model calls | Framework steps | At the minimum limit (LangGraph 4 / Pydantic AI 2) |
+|---|---:|---:|---:|---|
+| 1× 500 then 200 | 3 | 2 | 3 / 6 (unchanged) | succeeds |
+| 2× 500 then 200 | 4 | 2 | unchanged | succeeds |
+| 1× 429 then 200 | 3 | 2 | unchanged | — |
+| 3× 500 | 3 (1 + SDK default 2 retries) | 0 | — | error escapes: `OpenAIAPIError` (LangGraph) / `ModelServerError` (Pydantic AI) |
+
+HTTP retries are below the framework: invisible to every loop counter, and they never consume loop budget. They do cost time and provider quota (each attempt counts against provider rate limits).
+
+### Near the limit (B3-3.1.21)
+- **No warning, no forced answer:** our LangGraph graph and Pydantic AI send the same system/user messages on every request up to the limit, then raise.
+- **Reference, the deprecated `create_react_agent` (LangGraph prebuilt):**
+  - At limit 4 it returned a **framework-written final answer**, "Sorry, need more steps to process this request.", with **no error**, after 2 real model calls.
+  - At limits 3 and 5 it raised `GraphRecursionError`.
+  - Its `remaining_steps` guard only fires at some limit values; callers then receive a successful run whose text the model never wrote.
+
+### Side effects before the limit (B3-3.1.22)
+`create_order` (Phase 2 `Orders.unguarded`) on every turn: the ledger equals the tool executions in every case (LangGraph 4 → 2, 5 → 2 plus 1 requested but not executed; Pydantic AI 2 → 2, 3 → 3). **Nothing is rolled back.** The limit exception leaves committed effects and no final answer.
+
+### Critical matrix
+| Event | Model request count | Framework step count | Tool retry count | HTTP retry count | Loop budget? |
+|---|---|---|---|---|---|
+| normal model response | +1 | LangGraph +1 (`agent`); Pydantic AI +2 (request + call-tools nodes) | — | — | **yes**, both |
+| tool call (requested) | 0 (part of a response) | — | — | — | no, by itself |
+| tool execution | 0 | LangGraph +1 per batch (`tools`); Pydantic AI 0 extra | — | — | LangGraph: yes (a super-step); Pydantic AI: no |
+| model-visible tool retry | +1 | LangGraph +2; Pydantic AI +2 | Pydantic AI per-tool retry +1 | — | **yes**, both |
+| framework tool retry (LangGraph `RetryPolicy`) | 0 | 0 | policy attempt +1 | — | **no** |
+| Pydantic AI output re-prompt | +1 | +2 | output retry +1 | — | **yes** |
+| provider HTTP retry | 0 | 0 | — | +1 | **no** |
+| natural termination | the final request counts | LangGraph: the *next* tick is checked against the limit | — | — | LangGraph: needs one unit of headroom; Pydantic AI: no |
+| iteration-limit failure | — | — | — | — | LangGraph `GraphRecursionError` (state dropped by `invoke`); Pydantic AI `UsageLimitExceeded` (history on `run.ctx`) |
+
+### Expected vs actual
+| H | Expected | Actual |
+|---|---|---|
+| H3.1 | LangGraph ≥ 1, Pydantic AI ≥ 1 | Pydantic AI ✔. **LangGraph needs 2**: limit = super-steps fails even though the work finished |
+| H3.2 | LangGraph ≥ 3, Pydantic AI ≥ 2 | Pydantic AI ✔. **LangGraph needs 4**, and at 3 a finished answer is discarded (live 2/2) |
+| H3.3 | LangGraph ≥ 5, Pydantic AI ≥ 3 | Pydantic AI ✔. **LangGraph needs 6**. Units confirmed: super-steps vs model requests |
+| H3.4 | LangGraph parity-dependent; Pydantic AI runs the last tool; `tool_calls_limit` refuses before | **confirmed** |
+| H3.5 | re-prompt consumes `request_limit` and output retries | **confirmed** |
+| H3.6 | `retries=N` → N+1 requests unless `request_limit` trips first | **confirmed** |
+| H3.7 | `ModelRetry` costs requests; plain exception escapes; LangGraph default +2 steps; `RetryPolicy` 0 steps | **confirmed** |
+| H3.8 | framework retry consumes no budget; Pydantic AI has none | **confirmed** (no Pydantic AI framework-only tool re-execution was found or observed) |
+| H3.9 | 2 attempts, 1 framework call | **confirmed** (plus: after 3 failures the SDK gives up and the error escapes) |
+| H3.10 | HTTP retry succeeds at the minimum limit | **confirmed** with the measured minimum (LangGraph 4). My first run used 3, from H3.2, and failed for the H3.2 reason, not because of the HTTP retry |
+| H3.11 | no warning; the prebuilt may write a message | **confirmed**; the prebuilt writes one only at some limit values |
+| H3.12 | no rollback | **confirmed** |
+
+### Ownership (annotated stack)
+```
+USER
+ └ APPLICATION ........ chooses recursion_limit / UsageLimits / retries / RetryPolicy / tool_calls_limit
+                         owns rollback/compensation (no layer below does it) and what to do with a limit error
+    └ AGENT FRAMEWORK .. loop + counters: LangGraph super-steps (checked before "done"), Pydantic AI requests (before each request)
+    |                    model-visible tool retries (both), framework tool retry (LangGraph RetryPolicy), output re-prompt (Pydantic AI)
+       └ MODEL ADAPTER . ChatOpenAI / OpenAIChatModel: one framework call -> one logical request
+          └ PROVIDER CLIENT  OpenAI SDK: HTTP retries (max_retries=2), invisible above
+             └ PROVIDER ....  rate limits count every HTTP attempt
+TOOL / DATA ........... side effects commit when the body runs; never rolled back by a limit
+```
+Cancellation was not measured in this batch (Phase 2 Batch 4: the runtime delivers it; sync tools finish anyway).
+
+### Answers
+| Q | Answer |
+|---|---|
+| Q1 | LangGraph has no "iteration": it counts **super-steps** (one node run each; 2 per tool round + 1), and the run fails unless the limit exceeds them |
+| Q2 | Pydantic AI's budget counts **model requests** (including re-prompts and retry requests); its graph nodes are not counted |
+| Q3 | Framework tool retry (LangGraph `RetryPolicy`): no. Model-visible tool retry: yes |
+| Q4 | Yes: +1 request (Pydantic AI) / +2 super-steps (LangGraph) |
+| Q5 | Yes: +1 request in Pydantic AI (LangGraph has no re-prompt) |
+| Q6 | No: invisible to both frameworks; costs provider quota and time |
+| Q7 | LangGraph: at an odd limit the requested tool is **not** executed (pending in state). Pydantic AI `request_limit`: the tool **is** executed, then the next request is refused. `tool_calls_limit`: not executed |
+| Q8 | The effect stays; nothing is rolled back; the run ends in an exception with no final answer |
+| Q9 | No (our graph, Pydantic AI). The deprecated prebuilt sometimes writes "Sorry, need more steps…" and returns success |
+| Q10 | No. LangGraph counts super-steps with one unit of headroom; Pydantic AI counts model requests. Equivalent: LangGraph `2·k` ≈ Pydantic AI `k` model decisions |
+
+### Live validation
+Quota recovered on 2026-10-29; 6 runs on `openai/gpt-oss-120b`, temperature 0:
+- LangGraph limit 3: `GraphRecursionError` after the real final answer, 2/2.
+- LangGraph limit 4: success, 1/1.
+- Pydantic AI limit 1: tool executed, then `UsageLimitExceeded`, 2/2.
+- Pydantic AI limit 2: success, 1/1.
+
+The offline mechanics were reproduced exactly.
+
+### Limits (Batch 3)
+- Scripted mechanics only; the live check covers only the limit boundary.
+- No streaming, no async `ainvoke` path, no Pydantic AI token limits.
+- LangGraph `RetryPolicy` was measured on the `tools` node only (not on the `agent`/model node).
+- Cancellation was out of scope.
