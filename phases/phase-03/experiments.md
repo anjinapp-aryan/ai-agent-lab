@@ -403,3 +403,200 @@ The offline mechanics were reproduced exactly.
 - No streaming, no async `ainvoke` path, no Pydantic AI token limits.
 - LangGraph `RetryPolicy` was measured on the `tools` node only (not on the `agent`/model node).
 - Cancellation was out of scope.
+
+---
+
+# Batch 4 — Repeated calls, oscillation and no progress (hypotheses written 2026-10-31, before any Batch 4 run)
+
+Batch-local IDs follow the Batch 4 brief (`B4-3.1.23` … `B4-3.1.38`). Budgets are stated in model decisions and set per framework using the Batch 3 measurements: for k decisions on an endless script, LangGraph `recursion_limit = 2k`, Pydantic AI `request_limit = k`.
+
+Kept apart: same tool, same arguments, same call ID, different call IDs, same result, different text, same semantic state, same business operation.
+
+- **H4.1 (B4-3.1.23, 3.1.24):** neither framework detects identical repeated calls. With different call IDs, every call executes and gets its own tool message; only the loop limit stops an endless script.
+- **H4.1a (B4-3.1.24, same ID, added):** unknown. A reused call ID may be executed again, or collapsed where a framework keys results by ID. Expected: executed, but no strong prior.
+- **H4.2 (B4-3.1.26, 3.1.27):** neither framework detects A→B→A, with or without changing arguments. The limit stops it.
+- **H4.3 (B4-3.1.28, 3.1.29):** neither framework compares results between iterations, whether the text is identical or only semantically the same. Requests carry no injected warning.
+- **H4.4 (B4-3.1.38):** the limit is the only fallback for all three runaway shapes, and it cannot tell them from legitimate work. A budget too small for legitimate polling ends that run the same way.
+- **H4.5 (B4-3.1.32–3.1.34):** the frameworks provide no business-level duplicate protection. Same key: 3 executions in both frameworks; ledger 3 without the guard, 1 with it. Different keys: 3 orders. The same business intent under a different key: 2 orders, because the key defines "same", not the framework.
+- **H4.6 (B4-3.1.25, 3.1.30, 3.1.31):** repeated calls can be legitimate. Polling and different-argument sequences run and terminate naturally, with no special treatment before or after the repetition.
+- **H4.7 (B4-3.1.37):** trajectory history is sufficient for *syntactic* patterns only. Expected labels from a pure function (`REPEATED_CALL` = 3+ consecutive same tool and args; `NO_PROGRESS` = the same with the same result; `OSCILLATION` = 2+ exact A,B cycles):
+
+| Trajectory | Expected label | Honest verdict |
+|---|---|---|
+| 3.1.23 identical read-only | NO_PROGRESS | correct |
+| 3.1.25 different arguments | NONE | correct |
+| 3.1.26 A,B,A,B | OSCILLATION | correct |
+| 3.1.27 A(1),B(1),A(2),… | NONE | undecidable from syntax; may be pagination or a runaway |
+| 3.1.28 PENDING × n | NO_PROGRESS | correct |
+| 3.1.29 reworded PENDING | REPEATED_CALL | misses no-progress (same state, different text) |
+| 3.1.30 PROCESSING, PROCESSING, SHIPPED | REPEATED_CALL | **false alarm** on legitimate polling |
+| 3.1.31 PENDING, PENDING, COMPLETE | REPEATED_CALL | **false alarm** on legitimate polling |
+| 3.1.32 same key, guard on | NO_PROGRESS (same result, replay) | correct on syntax, blind to the ledger |
+| 3.1.33 different keys | NONE | correct |
+| 3.1.36 empty results | NO_PROGRESS | plausible; depends on task |
+
+- **H4.8 (B4-3.1.35):**
+  - LangGraph default: each error is fed back and the loop limit stops it.
+  - LangGraph `RetryPolicy` with `handle_tool_errors=False`: bounded by the policy, then the exception escapes after 1 model request.
+  - LangGraph `RetryPolicy` with the default handler: the handler consumes the error first, so the policy never fires.
+  - Pydantic AI `ModelRetry`: stopped by the retry budget, the only native stop here that reacts to repetition, and only to repeated *failure*. Expected (`[K]`, not read): the counter resets on success, so alternating fail/success never trips it.
+  - Pydantic AI plain exception: escapes at the first failure.
+- **H4.9 (B4-3.1.36):** an empty result has no loop semantics: it is a success on the wire, unlike an error.
+
+## Batch 4 results (2026-10-31)
+**Setup.** `phase-03/exp3_batch4.py` reuses the Batch 3 runners and scripted transport, Phase 2 `Orders`/`make_flaky`, and the recorder.
+- Budget: 6 model decisions (LangGraph `recursion_limit=12`, Pydantic AI `request_limit=6`) unless stated.
+- Tests: `tests/phase_03/test_batch4_repetition.py` (55 offline; 3 runs, 55/55 each).
+- Data: `phase-03/results/batch4.json` (git-ignored); counts in [results/batch4-summary.json](results/batch4-summary.json).
+- Audit: [reuse-audit.md](reuse-audit.md). Classifier decision: [decision-record.md](decision-record.md).
+
+### Results (offline; LangGraph / Pydantic AI, identical unless noted)
+| Experiment | Case | Model requests | Tool executions | Native steps | Stopped by | Offline label |
+|---|---|---:|---:|---|---|---|
+| B4-3.1.23 | `get_order(123)` forever | 6 | 6 | 12 / 14 | `GraphRecursionError` / `UsageLimitExceeded` | NO_PROGRESS |
+| B4-3.1.24 | 3 identical, different IDs, then final | 4 | 3 | 7 / 10 | natural | NO_PROGRESS |
+| B4-3.1.24 | 3 identical, **same ID across turns** | 4 | 3 | 7 / 10 | natural | NO_PROGRESS |
+| B4-3.1.24 | 2 identical, **same ID in one response** | 2 / **1** | 2 / **0** | 3 / 3 | natural / **`UnexpectedModelBehavior`: "Function tool calls must have unique `tool_call_id` values"** | NONE |
+| B4-3.1.24 | 2 identical, distinct IDs in one response | 2 | 2 | 3 / 6 | natural | NONE |
+| B4-3.1.25 | control: 123, 124, 125, 126 | 5 | 4 | 9 / 12 | natural | NONE |
+| B4-3.1.26 | A,B,A,B forever | 6 | 6 | 12 / 14 | limit | OSCILLATION |
+| B4-3.1.27 | A(1),B(1),A(2),… forever | 6 | 6 | 12 / 14 | limit | NONE |
+| B4-3.1.28 | PENDING forever | 6 | 6 | 12 / 14 | limit | NO_PROGRESS |
+| B4-3.1.29 | reworded PENDING forever | 6 | 6 | 12 / 14 | limit | REPEATED_CALL |
+| B4-3.1.30 | PROCESSING, PROCESSING, SHIPPED | 4 | 3 | 7 / 10 | natural | REPEATED_CALL (false alarm) |
+| B4-3.1.31 | PENDING, PENDING, COMPLETE | 4 | 3 | 7 / 10 | natural | REPEATED_CALL (false alarm) |
+| B4-3.1.31 | same, budget of 2 decisions | 2 | 2 | 4 / 6 | **limit kills legitimate work** | NONE |
+| B4-3.1.36 | `search` → `[]` forever | 6 | 6 | 12 / 14 | limit | NO_PROGRESS |
+
+No run contains a framework warning: the system and user messages were unchanged on every request, and no error names repetition. The only exception is the duplicate-ID rejection, a protocol check.
+
+### Side effects (B4-3.1.32 – 3.1.34, Phase 2 `Orders`, both frameworks identical)
+| Case | Tool executions | Ledger | Replays |
+|---|---:|---:|---:|
+| no guard, 3 identical calls | 3 | **3** | 0 |
+| guard, same key × 3 | 3 | **1** | 2 |
+| guard, keys A, B, C | 3 | 3 | 0 |
+| guard, same key A, 2 call IDs | 2 | **1** | 1 |
+| guard, same intent, keys A then B | 2 | **2** | 0 |
+
+The frameworks ran every call. Only the business layer changed the ledger, and it understands "same" only through the key it is given.
+
+### Repetition after an error (B4-3.1.35)
+| Setup | Model requests | Tool executions | Stopped by |
+|---|---:|---:|---|
+| LangGraph default handler | 6 | 6 | loop limit; the error text goes back to the model every time |
+| LangGraph default, alternating fail/ok | 6 | 6 | loop limit |
+| LangGraph `RetryPolicy(3)`, `handle_tool_errors=False` | **1** | 3 | `RuntimeError` escapes after the policy's 3 attempts |
+| LangGraph `RetryPolicy(3)`, default handler | 6 | 6 | loop limit: **the handler consumes the error, the policy never fires** |
+| Pydantic AI `ModelRetry`, `retries=1` / `3` | 2 / 4 | 2 / 4 | retry budget: `Tool 'flaky' exceeded max retries count of N` |
+| Pydantic AI `ModelRetry` alternating, `retries=1` | 6 | 6 | request limit: **the budget resets on success**, so it counts consecutive failures, not repetition |
+| Pydantic AI plain exception, `retries=3` | 1 | 1 | `RuntimeError` escapes at once |
+
+### Empty result (B4-3.1.36)
+A success with no loop semantics in either framework. On the wire LangGraph sends `content: []` and Pydantic AI sends `content: ""`. Only the mock transport received this; how a provider treats an empty list was not tested.
+
+### What stops a runaway (B4-3.1.38; A,A,A / A,B,A,B / PENDING)
+| Stop | Reacts to the pattern? | Result |
+|---|---|---|
+| LangGraph `recursion_limit` | no, counts super-steps | 6 decisions at limit 12, then error |
+| Pydantic AI `request_limit` | no, counts model requests | 6 at limit 6; **50 at the default** (measured) |
+| Pydantic AI `tool_calls_limit=3` | no, counts tool calls | 3 executed, the 4th refused |
+| Tool retry budget | only consecutive *failures* | not triggered by successful repetition |
+| Natural termination | the model chooses | never, on these scripts |
+| Application stop | not exercised | — |
+
+LangGraph's default limit (10007) was not run; a runaway under it was not measured.
+
+### Trajectory analysis (B4-3.1.37)
+Every label matched the table written before the run (H4.7). The record is enough for syntax and no further:
+- **Correct:** exact repeats, exact A,B cycles, identical results.
+- **False alarm:** legitimate polling that made progress at the third call (B4-3.1.30, 3.1.31).
+- **Miss:** reworded no-progress reads as REPEATED_CALL, not NO_PROGRESS (B4-3.1.29).
+- **Undecidable:** A(1),B(1),A(2),… may be pagination or a runaway (B4-3.1.27).
+- **Blind:** the label cannot see the ledger. Three calls read NO_PROGRESS with the guard (1 order, safe) and REPEATED_CALL without it (3 orders, harmful); the label only reflects that the result text changed, not which outcome is the problem.
+- **Not predicted:** LangGraph `RetryPolicy` is labelled REPEATED_CALL although the model decided once. The recorded `reexecution` flag and the single call ID tell them apart; the label, which reads executions, does not.
+
+### Live (`openai/gpt-oss-120b`, temperature 0, 2 trials per framework per case, budget 6 decisions, 14,116 tokens)
+Not evidence of framework detection. It shows model behavior, and it exposed a confound.
+| Case | LangGraph | Pydantic AI |
+|---|---|---|
+| "keep checking until COMPLETE", always PENDING | `check_status` × 6, then `GraphRecursionError` (2/2) | 1 check, then text saying it is PENDING (2/2) |
+| `ping_a` / `ping_b` outputs telling the model to call the other | a, b, a, then the model stopped itself (2/2) | a, b, then the model stopped itself (2/2) |
+| "keep checking until it has shipped", PROCESSING, PROCESSING, SHIPPED | 3 checks, correct answer (2/2) | 1 check, reports not yet shipped (2/2): **natural termination, task unfinished** |
+
+### The discrepancy, traced: Pydantic AI echoes `reasoning`
+Same model and prompt, opposite behavior. Traced in three steps:
+1. **Replay of each framework's request built against the mock** (no `reasoning` in it), with `additionalProperties`/`strict` toggled: all four variants polled, 12/12. The schema envelope was **not** the cause; my first suspicion was wrong.
+2. **Real second requests captured:** Pydantic AI sends the model's previous `reasoning` back in the assistant message; LangGraph drops it. That text read "we have only one call per turn… we can inform them".
+3. **Direct replay, changing only that field (3 trials each):**
+
+| Request | Next decision |
+|---|---|
+| Pydantic AI real request, with `reasoning` | text, 3/3 |
+| Pydantic AI real request, `reasoning` removed | **tool call, 3/3** |
+| LangGraph real request, no `reasoning` | tool call, 3/3 |
+| LangGraph real request + the same `reasoning` | **text, 3/3** |
+
+An offline test pins the echo itself. Consequences:
+- **What the frameworks send after the first request is not the same conversation.** Any multi-turn live comparison between them carries this confound, including Phases 1–2 and Batches 1–3. Phase 2's 5.10 finding is a first-request effect and is unaffected.
+- **Correction to Batch 1:** it attributed Pydantic AI's extra tokens per request to its schemas. The echo also adds tokens after the first request; the two were not separated.
+- **Not established:** whether echoing helps or harms in general. N=3, one model, one prompt, one reasoning text.
+- **Also seen:** one Pydantic AI reply promised "I'll keep monitoring it and let you know as soon as it changes". The run had ended and nothing was monitoring.
+
+### Critical classification
+| Dimension | Framework sees it? | Evidence |
+|---|---|---|
+| same tool | runs it | 3.1.25 |
+| same arguments | no comparison | 3.1.23 |
+| same call ID, across turns | no comparison; executed again | 3.1.24 |
+| same call ID, within a response | Pydantic AI rejects (protocol); LangGraph runs both | 3.1.24 |
+| different call IDs | pairs each result with its call | 3.1.24 |
+| same result | no comparison | 3.1.28 |
+| different text, same semantic state | no comparison | 3.1.29 |
+| same business operation | no concept of it | 3.1.34 |
+
+### Expected vs actual
+| H | Expected | Actual |
+|---|---|---|
+| H4.1 | no detection of identical calls | **confirmed** |
+| H4.1a | reused ID: unknown | across turns, executed in both. Within a response: **Pydantic AI rejects, LangGraph runs both** |
+| H4.2 | no oscillation detection | **confirmed** |
+| H4.3 | no result comparison | **confirmed** |
+| H4.4 | limits are the fallback and cannot discriminate | **confirmed**: the same counter ends a runaway and legitimate polling |
+| H4.5 | no business duplicate protection | **confirmed** |
+| H4.6 | legitimate repetition runs normally | **confirmed** |
+| H4.7 | syntactic labels only | **confirmed**, plus the unpredicted `RetryPolicy` false alarm |
+| H4.8 | stops as listed; budget resets on success | **confirmed**; the reset was a from-memory guess, now observed |
+| H4.9 | empty result has no loop semantics | **confirmed**; wire encoding differs |
+| not predicted | — | the live polling split between frameworks, caused by the `reasoning` echo |
+
+### Ownership (evidence-based)
+| Capability | Model | Framework | Runtime | Application | Business/Data |
+|---|---|---|---|---|---|
+| Decide next tool | **owns** | — | — | shapes it (prompt, catalog) | — |
+| Execute tool | requests | **dispatches** | **runs the body** | authorizes | effect happens here |
+| Detect repeated call | may notice, unreliable | **no** | no | **owns policy**: which tools, what "same" means | — |
+| Detect oscillation | may notice (stopped itself live) | **no** | no | **owns policy** | — |
+| Detect no progress | may notice, unreliable | **no** | no | **owns**, with the tool reporting real state | holds the true state |
+| Enforce loop limit | — | **enforces** | — | **chooses the value** | — |
+| Prevent duplicate side effect | — | **no** | no | supplies the key | **owns** |
+| Idempotency | may supply a key | **no** | no | should supply the key | **owns** the atomic check |
+| Authorization | — | hook point only | — | **owns** | enforces scoping |
+| Business constraint | — | no | no | may pre-check | **owns** |
+
+### If the framework does not detect repetition, who should?
+It splits, by what each layer can actually know:
+- **Model:** first line, and sometimes it works (it stopped both live oscillations). Not a guarantee: it polled to the limit under one framework and quit early under the other.
+- **Framework:** owns the blunt bound, and it should keep it. It has no way to know that PROCESSING to SHIPPED is progress. A generic detector would false-alarm exactly as ours did; the external detectors make "same" configurable per tool for this reason.
+- **Tool:** owns meaning. It knows whether a result is terminal or whether a retry is pointless, and can say so in its result. Not tested here.
+- **Application policy:** owns the decision, per tool: expected repetition, budget, and what to do when it trips. Framework hooks are the place for it.
+- **Business/data:** owns duplicate effects. No upper layer can substitute for it, because a model can always send the call again.
+
+### Is repeated tool calling itself an error?
+**No.** Polling, pagination, retries and status checks all repeat by design, and an idempotent replay repeats safely (ledger 1, replays 2). Repetition only means something relative to a definition of "same", an expected progress, and a side-effect risk. The same trajectory, three calls of `check_status`, was correct when the third result was SHIPPED and a runaway when it never changed.
+
+### Limits (Batch 4)
+- Scripted mechanics; thresholds in the labels are arbitrary.
+- Live: one model, 2 trials, and N=3 for the `reasoning` result.
+- Not tested: tool-reported terminal state, application hooks acting on repetition, LangGraph's default limit, provider handling of empty tool content.
+- `agent-loop-guard` was read, not run.

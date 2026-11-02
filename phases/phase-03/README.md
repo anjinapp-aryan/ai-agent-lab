@@ -1,6 +1,6 @@
 # Phase 3 — Agent Loop / ReAct Execution
 
-Status: **3.0 reuse audit done — GO WITH LIMITATIONS.** Phase 3.1 in progress: **Batches 1 (trace), 2 (natural termination) and 3 (limits, retries, loop budget) done** — see [experiments.md](experiments.md); Batches 4–10 not started. Uncommitted until the Phase 3.1 gate.
+Status: **3.0 reuse audit done — GO WITH LIMITATIONS.** Phase 3.1 in progress: **Batches 1 (trace), 2 (natural termination), 3 (limits, retries, loop budget) and 4 (repetition, oscillation, no progress) done** — see [experiments.md](experiments.md); Batches 5–10 not started. Work since the last commit stays uncommitted until the Phase 3.1 gate.
 
 | Document | Content |
 |---|---|

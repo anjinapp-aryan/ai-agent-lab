@@ -68,3 +68,24 @@ Date 2026-10-28. Health `[V]` via `gh api repos/...` and PyPI JSON. Loop locatio
 
 ## Conclusion
 **REUSE** LangGraph and Pydantic AI (no new dependency). **REFERENCE** the other seven frameworks, mini-swe-agent and the ReAct paper by source reading only. No framework or loop is to be written. The single possible BUILD is a measurement-only trajectory checker, deferred to Phase 3.1 with a decision record.
+
+## Batch 4 focused audit: loop, repetition and no-progress detection (2026-10-31)
+Health `[V]` via `gh api` and PyPI; descriptions `[S]` from search results or READMEs unless marked.
+
+| Candidate | License | Maintenance | Relevance | Architecture | Decision |
+|---|---|---|---|---|---|
+| LangGraph 1.2.18, Pydantic AI 2.62.0 (installed) | MIT | active | **none found** for repetition, oscillation or no-progress: keyword search of the whole installed packages `[V]`, and execution in Batch 4 `[V]` | count limits only | **REUSE** for limits |
+| ArkNill/agent-loop-guard (`QuartzUnit` on PyPI) | MIT | 1 star; v0.1.1 (2026-03-25); last commit 2026-04-15 (docs) | high: exact and fuzzy repeats, cycles, output stagnation | ~360-line sliding-window runtime gate returning ALLOW/WARN/STOP/ESCALATE. Source read `[V]`; **not executed**. Its cycle detector compares tool *names*, so A(1),B(1),A(2) would count as a cycle, unlike ours | **REFERENCE**: new dependency, immature, runtime gate |
+| OpenRouter Agent SDK doom-loop detection | repo license not detected (`OpenRouterTeam/typescript-agent`) | active | high as a design: off by default, per-tool `loopKey`, tool opt-out, block or stop; rewording not caught `[S]` | TypeScript SDK, different stack | **REFERENCE** (design) |
+| pi-loop-guard, pi-anti-doom-loop | not checked | not checked | medium `[S]` | extensions for the Pi agent | **REFERENCE** |
+| crewAI PR #4683 "agent loop detection middleware" | MIT repo | **closed, not merged** `[V]` | evidence that the capability is wanted and not settled | middleware proposal | **REFERENCE** |
+| langchain `ToolCallLimitMiddleware` | MIT | active | per-tool count, not pattern `[V, Phase 3.0]` | LangChain middleware; dependency declined | **REFERENCE** |
+| langchain-ai/agentevals | MIT | 755 stars; last push 2026-07-14 | low: compares with a reference trajectory `[S]` | evaluator | **REFERENCE** |
+| invariantlabs-ai/invariant | Apache-2.0 | last push 2026-01-12 | medium: trace policy language `[K]`, not inspected | security rules over traces | **REFERENCE** |
+| tool-loop-break | not checked | — | exact (tool, args hash) repeats `[S]` | Rust crate | **REJECT** (wrong language) |
+| tool-call-dedup | — | not found on PyPI under that name; **NOT VERIFIED** | exact duplicates `[S]` | — | **REJECT** (unverified) |
+| microsoft/agent-governance-toolkit, DeepEval, TruLens, Guardrails | MIT / Apache-2.0 / MIT / Apache-2.0 | active | not inspected for this capability | — | **NOT AUDITED** |
+
+**Decision:** no dependency added. Execution stays with the frameworks. A tiny offline labeling function is justified in [decision-record.md](decision-record.md).
+**Finding:** detectors exist outside the two frameworks, are young, and agree that "same" must be configurable per tool. That matches Batch 4's result that repetition cannot be judged generically.
+**Limit:** this was a focused search, not exhaustive.

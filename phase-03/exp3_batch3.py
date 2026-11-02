@@ -95,8 +95,12 @@ def run_pa(q, model, tools, traj, request_limit, tool_calls_limit=None, retries=
     return out
 
 
+LAST_TRAJ = None                                                      # the trajectory of the latest run(), read by Batch 4
+
+
 def run(fw, q, script, limit, tools=None, transport=None, **kw):
-    traj = Trajectory()
+    global LAST_TRAJ
+    traj = LAST_TRAJ = Trajectory()
     t = transport or b2.raw_transport(script)[0]
     model = b1.MODELS[fw](traj, transport=t)
     tools = [traced(x, traj) for x in (tools if tools is not None else TOOLS)]   # every tool body logged
