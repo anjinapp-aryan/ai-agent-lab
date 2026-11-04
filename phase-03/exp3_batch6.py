@@ -290,7 +290,7 @@ def _record(fw, label, mech, traj, probe, log, holder, out):
                           for h in hist],
         "state_pending_calls": len(called - answered), "state_tool_results": sum(1 for h in hist if h["role"] == "tool"), "usage": usage,
         "timeline": [(e["t_ms"], e["kind"]) for e in ev if e["kind"] in ("stop_requested", "caller_returned", "tool_start", "tool_end", "tool_cancelled",
-                                                                           "tool_finally", "tool_cancel_swallowed", "effect", "model_request", "model_response")],
+                                                                           "tool_finally", "effect", "model_request", "model_response")],   # swallowed cancels are counted, not listed
     }
     return rec
 
