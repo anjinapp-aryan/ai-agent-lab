@@ -89,3 +89,12 @@ Health `[V]` via `gh api` and PyPI; descriptions `[S]` from search results or RE
 **Decision:** no dependency added. Execution stays with the frameworks. A tiny offline labeling function is justified in [decision-record.md](decision-record.md).
 **Finding:** detectors exist outside the two frameworks, are young, and agree that "same" must be configurable per tool. That matches Batch 4's result that repetition cannot be judged generically.
 **Limit:** this was a focused search, not exhaustive.
+
+
+## Batch 6 focused audit: timeouts, cancellation and token counting (2026-11-05)
+Full table and the mechanism inventory read from the installed sources: [batch6-gap-analysis.md](batch6-gap-analysis.md).
+- **Decision: no dependency added.** Python 3.12 `asyncio.timeout` / `Task.cancel`, `threading`, `http.server`, and the frameworks' own features cover every need.
+- `anyio` (MIT), `tenacity` (Apache-2.0) and `tiktoken` (MIT) are already installed as transitive dependencies. They were **REFERENCE** only: the frameworks own retry and cancellation here, and the provider reports token usage.
+- `litellm` has a `NOASSERTION` license (mixed, with an enterprise directory): **REFERENCE**, legal review if ever considered. `pytest-timeout`: **REFERENCE**. `aio-libs/async-timeout`: **REJECT** (repository archived; stdlib `asyncio.timeout` replaces it).
+- **New code is measurement fixtures only:** a stdlib scripted HTTP server (`lab3/slow_server.py`, needed because `httpx.MockTransport` cannot enforce a timeout), tool probes, and a stop trigger keyed to named events (`phase-03/exp3_batch6.py`). No deadline manager, cancellation helper, retry layer or token budgeter was built.
+- **Two optional, default-off parameters were added to the Phase 1 graph builder** (`async_model`, `awrap_tool_call`) so a LangGraph run can be cancelled through a coroutine model node and an async tool wrapper can be tested; `lg_agent.run` and every earlier result are unchanged.

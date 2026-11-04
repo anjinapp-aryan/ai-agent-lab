@@ -760,3 +760,47 @@ Three findings from this table:
 - Honesty labels come from a keyword check plus reading; "did not mention a duplicate" was read, not machine-verified.
 - Not tested: checkpointed resume of a failed run, automatic retry of the model call itself, streaming, tools raising non-`ModelRetry` exceptions in live runs.
 - Langfuse: NOT AVAILABLE.
+
+
+---
+
+# Batch 6 - Timeout, cancellation and token limits (hypotheses written 2026-11-05, before any Batch 6 run)
+
+Batch-local IDs follow the Batch 6 brief (`B6-3.1.48` ... `B6-3.1.58`). Gap analysis, mechanism table and reuse audit: [batch6-gap-analysis.md](batch6-gap-analysis.md). Reasoning-echo modes (Batch 5 note) apply to any live comparison; this batch is scripted and local, so they do not arise unless stated.
+
+Terms kept apart: **timeout** (a deadline fired), **cancellation request** (a caller asks), **cancellation acknowledged** (the callee saw it and stopped), **work stopped** (the underlying thread, coroutine or server-side job actually ended).
+
+- **H6.1 (B6-3.1.48, model request timeout):**
+  - The timeout is enforced by the provider client (httpx through the OpenAI SDK), not by either framework.
+  - The SDK retries a timed-out attempt (default 2 retries), so one framework model call costs up to 3 HTTP attempts and about 3 x timeout of wall time. The framework sees one call.
+  - With retries off, the error surfaces after one timeout. It ends the run: no retry prompt, no recovery by the model.
+  - The server-side work continues after the client gives up (the handler finishes and its write fails).
+  - Pydantic AI's `request_timeout` is a separate clock over all attempts: with default retries it cuts the request at about `request_timeout` and raises `ModelRequestTimeout`, while `timeout` alone yields about 3 x.
+- **H6.2 (B6-3.1.49, synchronous tool):** when the caller gets the timeout or cancellation, the worker thread is still alive and the tool finishes later; its effect commits after the caller returned. Pydantic AI's `Tool(timeout)` turns it into a model-visible retry while the first execution is still running. "Run reported cancelled" does not mean "tool stopped".
+- **H6.3 (B6-3.1.50, asynchronous tool):** cancellation reaches the coroutine as `CancelledError` and `finally` runs; an effect committed before the await stays, one after it never happens. Two ways to defeat it: a tool that swallows `CancelledError` keeps running, and a blocking call inside an async tool freezes the event loop so no timeout can fire until it returns. Uncertain which way each framework behaves for the swallowing tool.
+- **H6.4 (B6-3.1.51, whole run):**
+  - Pydantic AI `run(timeout=)` covers model requests, tools and the gaps between steps with one deadline. It raises `RunTimedOut` carrying `all_messages()`, and aborts an in-flight model request or async tool; a sync tool's thread continues.
+  - LangGraph has no whole-run timeout; `asyncio.timeout` around the run is application code and behaves like a task cancel. Its `step_timeout` bounds one super-step.
+- **H6.5 (B6-3.1.52, cancellation points, four mechanisms):**
+  - Task cancel and Pydantic AI `cancel()` abort an in-flight HTTP request (the server sees the disconnect) and async tools.
+  - LangGraph `request_drain` does not interrupt anything: it takes effect at the next super-step boundary. An in-flight model request or tool completes first.
+  - A requested but not yet started tool does not run after a drain, but the model's pending call is left in state.
+  - Sync tools keep running under every mechanism.
+  - Pydantic AI `cancel()` is acknowledged promptly as `RunCancelled`; external task cancel stays `CancelledError`.
+- **H6.6 (B6-3.1.53, tokens):**
+  - LangGraph enforces no token or usage limit. Usage is readable from the messages.
+  - Pydantic AI checks provider-reported token usage after each response, before running that response's tool calls, so a response that crosses a token limit stops the run before its tool executes. A limit crossed only by the final answer raises after the answer was received (the answer is discarded).
+  - Neither counts provider-client HTTP retries or failed requests, so provider consumption can exceed an application budget without any framework noticing.
+  - A context-window rejection is an HTTP 400: one attempt, not retried, raised as a model error with no usage.
+  - `max_tokens` is a per-request provider cap on the wire, not a run budget.
+- **H6.7 (B6-3.1.54, pending tool call):** after any stop the framework's retained state lists the requested call but cannot say whether it executed. Executed after the stop: Pydantic AI `request_limit`, a running tool at timeout or cancel. Not executed: LangGraph at an odd recursion limit, Pydantic AI `tool_calls_limit`, a token limit crossed by the tool-call response, a drain before the tools node.
+- **H6.8 (B6-3.1.55, cancel after a business effect):** an effect committed before the cancel remains, the caller still receives an exception, and the tool's result is not in retained state. The framework does not record the completed operation. The business layer is the only source of the outcome: a lookup by idempotency key shows it; re-running with the same key replays (ledger stays 1), without it duplicates (2). A sync tool cancelled during its pre-commit delay still commits afterwards.
+- **H6.9 (B6-3.1.56, state):**
+  - LangGraph `invoke` leaves the caller with only the exception; `astream` leaves the last streamed values.
+  - Pydantic AI `run` / `run_sync` raise `RunCancelled` / `RunTimedOut` with `all_messages()`; `UsageLimitExceeded` and model errors carry no messages; `iter` keeps the run state.
+  - Pending calls are visible in state but ambiguous.
+- **H6.10 (B6-3.1.57, timeout x retry):**
+  - A timeout triggers a retry only at the SDK layer, and only for HTTP timeouts.
+  - A framework-level tool timeout in Pydantic AI becomes a model-visible retry, which can start a second execution while the first is still running (duplicate effect).
+  - LangGraph `RetryPolicy` does not retry a `step_timeout`.
+- **H6.11 (B6-3.1.58, cumulative deadline):** per-request, per-tool and per-step timeouts provide no bound on total run time: three steps each inside their own timeout can exceed an application deadline. Pydantic AI `run(timeout=)` bounds the total; LangGraph needs an application-level deadline.

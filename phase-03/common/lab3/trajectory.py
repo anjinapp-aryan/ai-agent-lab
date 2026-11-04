@@ -81,7 +81,7 @@ def traced(fn, traj):
     return wrapper
 
 
-def _hooks(traj, is_async):
+def _hooks(traj, is_async, presend=0.0):
     counter = {"n": 0}
 
     def on_request(request):
@@ -105,12 +105,21 @@ def _hooks(traj, is_async):
                  error_body=response.text[:400] if response.status_code != 200 else None)
 
     if not is_async:
+        def req(r):
+            if presend:                  # same window for the sync client (it runs in a worker thread under astream)
+                import time
+                time.sleep(presend)
+            on_request(r)
+
         def resp(r):
             r.read()
             on_response(r)
-        return {"request": [on_request], "response": [resp]}
+        return {"request": [req], "response": [resp]}
 
     async def areq(r):
+        if presend:                      # cancellation point "before the request reaches the wire" (Batch 6)
+            import asyncio
+            await asyncio.sleep(presend)
         on_request(r)
 
     async def aresp(r):
@@ -119,7 +128,9 @@ def _hooks(traj, is_async):
     return {"request": [areq], "response": [aresp]}
 
 
-def _target(transport):
+def _target(transport, base_url=None):
+    if base_url is not None:
+        return "mock", "k", base_url
     if transport is not None:
         return "mock", "k", "http://mock.invalid/v1"
     from lab_common.config import load_model_config
@@ -127,31 +138,49 @@ def _target(transport):
     return cfg.model_name, cfg.api_key, cfg.base_url
 
 
-def lg_model(traj, transport=None, temperature=0):
-    """The provider client LangGraph uses in Phase 1 (`ChatOpenAI`), with wire hooks. temperature 0 = Phase 1 default."""
+def lg_model(traj, transport=None, temperature=0, *, base_url=None, timeout=None, max_retries=None, presend=0.0, max_tokens=None):
+    """The provider client LangGraph uses in Phase 1 (`ChatOpenAI`), with wire hooks. temperature 0 = Phase 1 default.
+
+    base_url: point at a real local server (lab3.slow_server) instead of a mock transport. timeout / max_retries are
+    ChatOpenAI's own knobs (they configure the OpenAI SDK client): the only provider-level timeout LangGraph exposes.
+    Both a sync and an async client are recorded, so `invoke`/`stream` and `ainvoke`/`astream` appear on the wire."""
     import httpx
     from langchain_openai import ChatOpenAI
-    name, key, base = _target(transport)
-    return ChatOpenAI(model=name, api_key=key, base_url=base, temperature=temperature,
-                      http_client=httpx.Client(transport=transport, timeout=60, event_hooks=_hooks(traj, False)))
+    name, key, base = _target(transport, base_url)
+    extra = {}
+    if timeout is not None:
+        extra["timeout"] = timeout
+    if max_retries is not None:
+        extra["max_retries"] = max_retries
+    if max_tokens is not None:
+        extra["max_tokens"] = max_tokens
+    return ChatOpenAI(model=name, api_key=key, base_url=base, temperature=temperature, **extra,
+                      http_client=httpx.Client(transport=transport, timeout=60, event_hooks=_hooks(traj, False, presend)),
+                      http_async_client=httpx.AsyncClient(transport=transport, timeout=60, event_hooks=_hooks(traj, True, presend)))
 
 
-def pa_model(traj, transport=None, temperature=0, reasoning="native"):
+def pa_model(traj, transport=None, temperature=0, reasoning="native", *, base_url=None, timeout=None, request_timeout=None, max_retries=None, presend=0.0, max_tokens=None):
     """The provider client Pydantic AI uses in Phase 1 (`OpenAIChatModel`), with wire hooks.
 
     temperature 0 equalizes with LangGraph (the Phase 1 Pydantic AI model sends none; Phase 2 Batch 5 finding).
     reasoning: "native" = Pydantic AI's default, which echoes the model's earlier `reasoning` back (Batch 4 finding);
     "stripped" = the documented profile option `openai_chat_send_back_thinking_parts=False`, so no earlier reasoning
-    is sent (LangGraph never sends it). Controlled-parity mode for live comparisons."""
+    is sent (LangGraph never sends it). Controlled-parity mode for live comparisons.
+
+    timeout / request_timeout / max_retries are Pydantic AI's own `ModelSettings`: `timeout` is applied by the provider
+    client to each attempt, `request_timeout` is one deadline over every attempt of one model request, `max_retries`
+    overrides the SDK's retry count for the request."""
     assert reasoning in ("native", "stripped"), reasoning
     import httpx
     from openai import AsyncOpenAI
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.openai import OpenAIProvider
     from pydantic_ai.settings import ModelSettings
-    name, key, base = _target(transport)
+    name, key, base = _target(transport, base_url)
     client = AsyncOpenAI(api_key=key, base_url=base,
-                         http_client=httpx.AsyncClient(transport=transport, timeout=60, event_hooks=_hooks(traj, True)))
+                         http_client=httpx.AsyncClient(transport=transport, timeout=60, event_hooks=_hooks(traj, True, presend)))
     profile = {"openai_chat_send_back_thinking_parts": False} if reasoning == "stripped" else None
+    settings = {k: v for k, v in (("temperature", temperature), ("timeout", timeout), ("request_timeout", request_timeout),
+                                  ("max_retries", max_retries), ("max_tokens", max_tokens)) if v is not None}
     return OpenAIChatModel(name, provider=OpenAIProvider(openai_client=client), profile=profile,
-                           settings=ModelSettings(temperature=temperature) if temperature is not None else None)
+                           settings=ModelSettings(**settings) if settings else None)

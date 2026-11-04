@@ -29,18 +29,28 @@ def default_model():
 
 
 def build_graph(model=None, handle_tool_errors=True, tools=None, step_timeout=None, retry_policy=None,
-                wrap_tool_call=None, context_schema=None):
-    """handle_tool_errors is passed to ToolNode; see failure-analysis.md for what it changes."""
+                wrap_tool_call=None, context_schema=None, async_model=False, awrap_tool_call=None):
+    """handle_tool_errors is passed to ToolNode; see failure-analysis.md for what it changes.
+
+    async_model (Phase 3 Batch 6, default False = unchanged): make the model node a coroutine (`await llm.ainvoke`). The default
+    sync node runs in a worker thread under `astream`/`ainvoke`, so cancelling the run cannot interrupt its HTTP request.
+    awrap_tool_call: ToolNode's async tool wrapper (a sync `wrap_tool_call` runs on the event loop in async execution)."""
     tools = tools or TOOLS
     llm = (model or default_model()).bind_tools(tools)
 
-    def agent_node(state: MessagesState):
-        msgs = [SystemMessage(SYSTEM_INSTRUCTIONS)] + state["messages"]
-        return {"messages": [llm.invoke(msgs)]}
+    if async_model:
+        async def agent_node(state: MessagesState):
+            msgs = [SystemMessage(SYSTEM_INSTRUCTIONS)] + state["messages"]
+            return {"messages": [await llm.ainvoke(msgs)]}
+    else:
+        def agent_node(state: MessagesState):
+            msgs = [SystemMessage(SYSTEM_INSTRUCTIONS)] + state["messages"]
+            return {"messages": [llm.invoke(msgs)]}
 
     g = StateGraph(MessagesState, context_schema=context_schema)
     g.add_node("agent", agent_node)
-    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors, wrap_tool_call=wrap_tool_call), retry_policy=retry_policy)
+    g.add_node("tools", ToolNode(tools, handle_tool_errors=handle_tool_errors, wrap_tool_call=wrap_tool_call,
+                                 awrap_tool_call=awrap_tool_call), retry_policy=retry_policy)
     g.add_edge(START, "agent")
     g.add_conditional_edges("agent", tools_condition)  # -> "tools" or END
     g.add_edge("tools", "agent")
