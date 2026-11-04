@@ -1,6 +1,6 @@
 # Phase 3 — Agent Loop / ReAct Execution
 
-Status: **3.0 reuse audit done — GO WITH LIMITATIONS.** Phase 3.1 in progress: **Batches 1 (trace), 2 (natural termination), 3 (limits, retries, loop budget) and 4 (repetition, oscillation, no progress) done** — see [experiments.md](experiments.md); Batches 5–10 not started. Work since the last commit stays uncommitted until the Phase 3.1 gate.
+Status: **3.0 reuse audit done — GO WITH LIMITATIONS.** Phase 3.1 in progress: **Batches 1 (trace), 2 (natural termination), 3 (limits, retries, loop budget), 4 (repetition, oscillation, no progress) and 5 (retry and failure recovery) done** — see [experiments.md](experiments.md); Batches 6–10 not started. Work since the last commit stays uncommitted until the Phase 3.1 gate.
 
 | Document | Content |
 |---|---|
@@ -70,3 +70,10 @@ Use the Phase 1 agents and Phase 2 fixtures; scripted models for mechanics, live
   - Live experiments remain bound by Groq quotas (200K tokens per day per model).
   - Langfuse export is still blocked.
   - Any trajectory checker needs a decision record before it is written.
+
+## Methodological note: reasoning echo (from Batch 4 on)
+Pydantic AI sends the model's earlier `reasoning` back in later requests; LangGraph drops it. Changing only that field flipped the model's next decision in Batch 4, and in Batch 5 it changed how long the model kept retrying a failing tool.
+- Offline scripted findings (Batches 1-4) do not depend on model reasoning and stay valid.
+- Earlier multi-turn **live** cross-framework comparisons (Phases 1-2, Batches 1-3, Batch 4 polling) may be confounded. They are not re-run or relabelled; read them as native-behavior observations.
+- Live comparisons from Batch 5 on name their mode: **native** (each framework as shipped) or **controlled** (no earlier reasoning in either; Pydantic AI via `openai_chat_send_back_thinking_parts=False`). Controlled parity equalizes the echo only; the tool-error template and the schema envelope still differ.
+- Batch 5 documents: [batch5-gap-analysis.md](batch5-gap-analysis.md), results in [experiments.md](experiments.md).

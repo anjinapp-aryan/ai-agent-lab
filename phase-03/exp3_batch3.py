@@ -25,6 +25,7 @@ import httpx  # noqa: E402
 import lg_agent  # noqa: E402
 import pa_agent  # noqa: E402
 from lab2 import fixtures as fx  # noqa: E402
+from lab3.history import finish, lg_history, pa_history  # noqa: E402
 from lab3.trajectory import Trajectory, traced  # noqa: E402
 from lab_common.tools import TOOLS  # noqa: E402
 
@@ -64,7 +65,7 @@ def run_lg(q, model, tools, traj, recursion_limit, handle_tool_errors=True, retr
         err = f"{type(e).__name__}: {str(e).splitlines()[0][:160]}"
     msgs = (last or {}).get("messages", [])
     ai = [m for m in msgs if isinstance(m, AIMessage)]
-    return {"error": err, "framework_model_calls": len(ai), "state": [type(m).__name__ for m in msgs],
+    return {"error": err, "framework_model_calls": len(ai), "state": [type(m).__name__ for m in msgs], "history": lg_history(msgs),
             "final_text": ai[-1].content if ai and not ai[-1].tool_calls and err is None else None,
             "pending_tool_calls_in_state": len(ai[-1].tool_calls) if ai and ai[-1].tool_calls and (not msgs or msgs[-1] is ai[-1]) else 0}
 
@@ -89,7 +90,7 @@ def run_pa(q, model, tools, traj, request_limit, tool_calls_limit=None, retries=
                 out["final_text"] = None
             st = run.ctx.state
             out.update({"framework_model_calls": run.usage.requests, "usage_tool_calls": run.usage.tool_calls, "run_step": st.run_step,
-                        "state": [type(m).__name__ for m in st.message_history], "output_retries_used": getattr(st, "output_retries_used", None),
+                        "state": [type(m).__name__ for m in st.message_history], "history": finish(pa_history(st.message_history)), "output_retries_used": getattr(st, "output_retries_used", None),
                         "retries_state": {k: v for k, v in vars(st).items() if "retr" in k.lower()}})
     asyncio.run(go())
     return out
@@ -102,7 +103,9 @@ def run(fw, q, script, limit, tools=None, transport=None, **kw):
     global LAST_TRAJ
     traj = LAST_TRAJ = Trajectory()
     t = transport or b2.raw_transport(script)[0]
-    model = b1.MODELS[fw](traj, transport=t)
+    extra = {"reasoning": kw.pop("reasoning")} if fw == "pydantic-ai" and "reasoning" in kw else {}
+    kw.pop("reasoning", None)
+    model = b1.MODELS[fw](traj, transport=t, **extra)
     tools = [traced(x, traj) for x in (tools if tools is not None else TOOLS)]   # every tool body logged
     if fw == "langgraph":
         info = run_lg(q, model, tools, traj, limit, **{k: v for k, v in kw.items() if k in ("handle_tool_errors", "retry_policy")})

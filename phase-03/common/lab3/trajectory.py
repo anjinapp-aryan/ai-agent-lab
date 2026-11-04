@@ -101,7 +101,8 @@ def _hooks(traj, is_async):
         msg = choice.get("message", {})
         calls = [{"id": c["id"], "name": c["function"]["name"], "args": c["function"]["arguments"]} for c in msg.get("tool_calls") or []]
         traj.add("model_response", "model", n=counter["n"], status=response.status_code, tool_calls=calls,
-                 text=msg.get("content") or "", finish_reason=choice.get("finish_reason"), usage=body.get("usage"))
+                 text=msg.get("content") or "", finish_reason=choice.get("finish_reason"), usage=body.get("usage"),
+                 error_body=response.text[:400] if response.status_code != 200 else None)
 
     if not is_async:
         def resp(r):
@@ -135,10 +136,14 @@ def lg_model(traj, transport=None, temperature=0):
                       http_client=httpx.Client(transport=transport, timeout=60, event_hooks=_hooks(traj, False)))
 
 
-def pa_model(traj, transport=None, temperature=0):
+def pa_model(traj, transport=None, temperature=0, reasoning="native"):
     """The provider client Pydantic AI uses in Phase 1 (`OpenAIChatModel`), with wire hooks.
 
-    temperature 0 equalizes with LangGraph (the Phase 1 Pydantic AI model sends none; Phase 2 Batch 5 finding)."""
+    temperature 0 equalizes with LangGraph (the Phase 1 Pydantic AI model sends none; Phase 2 Batch 5 finding).
+    reasoning: "native" = Pydantic AI's default, which echoes the model's earlier `reasoning` back (Batch 4 finding);
+    "stripped" = the documented profile option `openai_chat_send_back_thinking_parts=False`, so no earlier reasoning
+    is sent (LangGraph never sends it). Controlled-parity mode for live comparisons."""
+    assert reasoning in ("native", "stripped"), reasoning
     import httpx
     from openai import AsyncOpenAI
     from pydantic_ai.models.openai import OpenAIChatModel
@@ -147,5 +152,6 @@ def pa_model(traj, transport=None, temperature=0):
     name, key, base = _target(transport)
     client = AsyncOpenAI(api_key=key, base_url=base,
                          http_client=httpx.AsyncClient(transport=transport, timeout=60, event_hooks=_hooks(traj, True)))
-    return OpenAIChatModel(name, provider=OpenAIProvider(openai_client=client),
+    profile = {"openai_chat_send_back_thinking_parts": False} if reasoning == "stripped" else None
+    return OpenAIChatModel(name, provider=OpenAIProvider(openai_client=client), profile=profile,
                            settings=ModelSettings(temperature=temperature) if temperature is not None else None)

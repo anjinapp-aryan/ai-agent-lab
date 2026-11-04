@@ -1,0 +1,323 @@
+{
+ "B5-live-43": [
+  {
+   "case": "Temporary failure",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "BUDGET_EXHAUSTED_NO_FINAL": 3
+   },
+   "tool_executions_per_run": [
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "case": "Temporary failure",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    3,
+    2
+   ]
+  },
+  {
+   "case": "Temporary failure",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "BUDGET_EXHAUSTED_NO_FINAL": 3
+   },
+   "tool_executions_per_run": [
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "case": "Please retry the operation",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "PROVIDER_REJECTED_TOOL_CALL": 2,
+    "BUDGET_EXHAUSTED_NO_FINAL": 1
+   },
+   "tool_executions_per_run": [
+    3,
+    5,
+    3
+   ]
+  },
+  {
+   "case": "Please retry the operation",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "PROVIDER_REJECTED_TOOL_CALL": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "case": "Please retry the operation",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "BUDGET_EXHAUSTED_NO_FINAL": 3
+   },
+   "tool_executions_per_run": [
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "case": "Operation unavailable",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "EMPTY_FINAL_ACCEPTED": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "Operation unavailable",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "case": "Operation unavailable",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "case": "Permission denied",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "case": "Permission denied",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    1,
+    1,
+    1
+   ]
+  },
+  {
+   "case": "Permission denied",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    1,
+    1,
+    1
+   ]
+  }
+ ],
+ "B5-live-43-recapture": [
+  {
+   "case": "Please retry the operation",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "PROVIDER_REJECTED_TOOL_CALL": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "case": "Please retry the operation",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "PROVIDER_REJECTED_TOOL_CALL": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "case": "Please retry the operation",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "BUDGET_EXHAUSTED_NO_FINAL": 3
+   },
+   "tool_executions_per_run": [
+    5,
+    5,
+    5
+   ]
+  }
+ ],
+ "B5-live-42": [
+  {
+   "case": "A no guard",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "A no guard",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "A no guard",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "B context key",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "B context key",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "case": "B context key",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "FINAL_WITHOUT_MENTIONING_FAILURE": 3
+   },
+   "tool_executions_per_run": [
+    2,
+    2,
+    2
+   ]
+  }
+ ],
+ "B5-live-41": [
+  {
+   "case": "A ok, B unavailable, C available",
+   "cell": "LG native (=controlled)",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "case": "A ok, B unavailable, C available",
+   "cell": "PA native",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "case": "A ok, B unavailable, C available",
+   "cell": "PA controlled",
+   "n": 3,
+   "outcomes": {
+    "GAVE_UP_AND_SAID_SO": 3
+   },
+   "tool_executions_per_run": [
+    3,
+    3,
+    3
+   ]
+  }
+ ]
+}

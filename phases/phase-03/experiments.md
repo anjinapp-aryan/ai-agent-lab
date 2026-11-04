@@ -600,3 +600,163 @@ It splits, by what each layer can actually know:
 - Live: one model, 2 trials, and N=3 for the `reasoning` result.
 - Not tested: tool-reported terminal state, application hooks acting on repetition, LangGraph's default limit, provider handling of empty tool content.
 - `agent-loop-guard` was read, not run.
+
+
+---
+
+# Batch 5 - Retry and failure recovery within the loop (hypotheses written 2026-11-04, before any Batch 5 run)
+
+Batch-local IDs follow the Batch 5 brief (`B5-3.1.39` ... `B5-3.1.47`). Gap analysis: [batch5-gap-analysis.md](batch5-gap-analysis.md).
+
+## Methodological note: reasoning echo (applies to every live comparison in Phase 3.1)
+Batch 4 found that Pydantic AI sends the model's earlier `reasoning` text back in later requests and LangGraph drops it, and that changing only that field flipped the model's next decision (3/3, both directions). Consequences, stated without rewriting any earlier result:
+- **Offline scripted findings** (Batches 1-4: counters, limits, stop mechanics, state shapes) do not depend on model reasoning and stay valid.
+- **Earlier multi-turn live comparisons between the frameworks** (Phases 1-2, Batches 1-3, and Batch 4's live polling) may be confounded by that difference. They are not re-run or re-labelled here; read them as native-behavior observations, not as a controlled comparison.
+- **From Batch 5 on, a live cross-framework comparison must name its mode:**
+  - **Mode A, native:** each framework as it ships.
+  - **Mode B, controlled parity:** no earlier reasoning in either framework's requests. LangGraph never sends it, so LangGraph's native cell is already Mode B. Pydantic AI Mode B uses its documented profile option `openai_chat_send_back_thinking_parts=False`.
+- Native and controlled cells are never compared as if equivalent.
+- Not built: a condition with reasoning echoed in both frameworks (it needs request rewriting below the framework). Residual request-envelope differences remain (Phase 2 Batch 5).
+
+## Hypotheses
+Tools raise `ModelRetry` for model-visible failures. Phase 2 measured that LangGraph's default handler turns it into an error `ToolMessage` and Pydantic AI treats it as a retry prompt, so one tool object serves both frameworks.
+- **H5.1 (B5-3.1.39):** the error text reaches the model on the next request, each framework wrapping it in its own template (LangGraph adds a "fix your mistakes" suffix). The failed call and its error stay in the history under the same call ID. The retry is a new call with a new ID and a new model decision; the final answer comes from the model alone.
+- **H5.2 (B5-3.1.40):** neither framework tells transient from permanent. If the scripted model gives up after three failures, both frameworks accept its truthful final answer, and the execution record still shows three failed executions. Pydantic AI needs `retries>=3` for the run not to die first. Live model behavior (persistence, honesty) is unknown, and I expect it to differ between models and between native and controlled cells.
+- **H5.3 (B5-3.1.41):** an earlier success stays in the next requests together with the later failure and the recovery result. The framework does not re-run A; whether a model does is model behavior.
+- **H5.4 (B5-3.1.42):** ledger counts match Phase 2's table (not reclaimed here). New at loop level:
+  - After a lost response the model sees only an ambiguous timeout.
+  - Without a guard the retry makes a second order and the framework accepts any final answer, including one that claims a single order.
+  - With a context-supplied key the retry replays (ledger 1).
+  - Same key with different arguments raises `ConflictError`: a plain exception, so LangGraph feeds it back and the model can recover, while Pydantic AI's run ends.
+- **H5.5 (B5-3.1.43):** a scripted model cannot show wording effects. What scripted runs can show is that each framework passes the tool's text through verbatim inside its own template and classifies nothing (including "Permission denied"). Wording may change a live model's decision; I expect "Permission denied" to stop retries more often than "Temporary failure". Unknown. The framework templates (LangGraph's suffix, Pydantic AI's JSON wrapper) are part of what the model reads.
+- **H5.6 (B5-3.1.44):** with A ok, B and C failing in one response and both retried in the next, the successes are kept and not re-run, retries are independent, and each result keeps its own call ID.
+- **H5.7 (B5-3.1.45):** a final answer after a failure is accepted without any check. The failure stays in the history and in the execution record whether or not the answer mentions it. Honesty belongs to the model.
+- **H5.8 (B5-3.1.46):** a failed run does not mean lost state, but where it survives depends on the API layer:
+  - LangGraph keeps the state only through `stream` (the last chunk). The error path through `invoke` returns nothing.
+  - Pydantic AI keeps history on the run object (`iter`).
+  - The Phase 1 application-level `run()` skips its `_fill` when an exception escapes (source read, not yet measured), so its `RunResult` keeps no tool calls in either framework.
+  - A side effect that already committed is in neither framework's state.
+- **H5.9 (B5-3.1.47):** nine separate counters per scenario reconcile without a universal "iteration". Tool-internal retries and business effects are invisible to both frameworks.
+
+## Batch 5 results (2026-11-04)
+**Setup.** `phase-03/exp3_batch5.py`. It reuses the Batch 3 runners (`e3.run`), the Batch 4 trajectory view and wire check, the Phase 2 `Orders` and `make_flaky_internal_retry` fixtures, the recorder and the Phase 1 `run()` entry points.
+- New measurement code only: scripted tool fixtures, `lab3/history.py` (a neutral view of retained conversation state), a `reasoning` option on the recorder's Pydantic AI model, and `error_body` capture for non-200 responses.
+- Tests: `tests/phase_03/test_batch5_recovery.py` (48 offline; 3 runs, 48/48 each).
+- Data: `phase-03/results/batch5.json` (git-ignored); live counts in [results/batch5-live-summary.json](results/batch5-live-summary.json).
+- Gap analysis: [batch5-gap-analysis.md](batch5-gap-analysis.md).
+- Failures are raised as `ModelRetry`, which both frameworks make model-visible, so one tool object serves both frameworks. Each framework puts its own template around the text (below).
+- Tools are synchronous; batched calls run on worker threads, and result order follows call order (Phase 2 Batch 4).
+
+### What was not rerun
+| Question | Why not |
+|---|---|
+| retry-budget arithmetic, step counts per retry | ALREADY COVERED by Batch 3 (B3-3.1.17/18). Used only as reference in the accounting table |
+| ledger counts for no guard / same key / different key / key changed by the model | ALREADY COVERED by Phase 2 (idempotency table) and Batch 4 (B4-3.1.32-34). Asserted in passing, not claimed anew |
+| repeated identical failures to the loop limit | Batch 4 B4-3.1.35 |
+| sibling results inside one batch | Phase 2 4.12-4.13 |
+
+### Reasoning-echo handling
+Live cells: **LG native (= controlled)**, **PA native** (echoes reasoning) and **PA controlled** (`reasoning="stripped"`, the documented profile option `openai_chat_send_back_thinking_parts=False`). Offline tests check on the wire that LangGraph and PA controlled send no `reasoning` field, native PA sends it, and the controlled mode changes nothing else in the requests.
+Not removed, so "controlled" means *only* the echo is equalized:
+1. the tool-error template (LangGraph: `Error: ModelRetry('<text>')\n Please fix your mistakes.`; Pydantic AI: `{"error":"<text>"}`),
+2. Pydantic AI's `strict`/`additionalProperties:false`/`tool_choice:auto` envelope (Phase 2 Batch 5),
+3. message formatting.
+Not built: reasoning echoed in both frameworks.
+
+### Scripted results (LangGraph / Pydantic AI, identical unless noted)
+| Exp | Case | Result |
+|---|---|---|
+| B5-3.1.39 | A fails once, model retries, then final | 3 model requests, 2 tool executions, 1 failed; call IDs `call_1_0` (failed) and `call_2_0` (retry). The error is in request 2 under its own template, and **both calls stay in every later request and in the retained history** (`error`/`retried`, then `success`). The retry is a new model decision; the final answer is the scripted model's text |
+| B5-3.1.40 | A always fails; model gives up after 3 (`retries=3`) | accepted: natural stop, 3 failures recorded, final text kept. Neither framework tells transient from permanent |
+| B5-3.1.40 | same script, Phase 1 default `retries=1` (Pydantic AI) | **the run dies at the 2nd failure** (`exceeded max retries count of 1`); the model's give-up is never requested. The framework's retry budget pre-empts the model's decision |
+| B5-3.1.41 | A ok, B fails, C ok, final | A, B, C each executed once; request 4 carries A's result, B's error and C's result under IDs 1_0, 2_0, 3_0; A is not re-run |
+| B5-3.1.42 A | no guard, lost response, model retries | ledger **2**, 2 executions; the model sees only "The order service timed out before returning a response." (no word of creation); a final "Your order has been created." is accepted unchecked |
+| B5-3.1.42 B | context key, same | ledger 1, 1 replay; the replay result reads like a fresh order (`order #1 created: 1 x widget`) |
+| B5-3.1.42 C | same key, different args | ledger 1. **LangGraph:** the `ConflictError` becomes an error message, the model answers, natural stop. **Pydantic AI:** the run ends with `ConflictError` (a plain exception), no final answer |
+| B5-3.1.43 | 4 wordings, raised | the text arrives verbatim inside the template; requests, executions and steps are identical across wordings. The framework classifies nothing, "Permission denied" included |
+| B5-3.1.43 | "Permission denied" returned as a normal result | arrives verbatim, no template, 0 failed executions |
+| B5-3.1.44 | `[A,B,C]` (B, C fail) then `[B,C]` then final | executions A 1, B 2, C 2; IDs `1_0,1_1,1_2` then `2_0,2_1`; request 3 holds all five results under the right IDs; successes not re-run |
+| B5-3.1.45 | A fails, honest final / final that does not mention it | both accepted. The failure stays in the retained history and in the execution record either way. The Phase 1 `run()` keeps the error text in `tool_calls` for a completed run |
+
+### Retry exhaustion and retained state (B5-3.1.46)
+| Case | Stopped by | Executions (failed) | Model requests | Native retained state | Phase 1 `run()` |
+|---|---|---:|---:|---|---|
+| E1 LangGraph default, limit 6 | `GraphRecursionError` | 3 (2) | 3 | user, A call, A ok, B call, B error, B call, B error | no tool calls, no text, 0 LLM calls |
+| E2 LangGraph `RetryPolicy(3)`, `handle=False` | `ModelRetry` (escaped) | 4 (3) | 2 | user, A call, A ok, **B call (pending)**; the 3 B executions leave no trace | same |
+| E3 Pydantic AI `ModelRetry`, `retries=1` | `UnexpectedModelBehavior` | 3 (2) | 3 | user, A call, A ok, B call, B retry prompt, **B call (pending)** | same |
+| E4 Pydantic AI plain `RuntimeError` | `RuntimeError` | 2 (1) | 2 | user, A call, A ok, **B call (pending)** | same |
+| E5 LangGraph default, `create_order` always loses its response, limit 6 | `GraphRecursionError` | 3 (3) | 3 | 3 calls, 3 errors; ledger **3** | — |
+| E6 Pydantic AI `ModelRetry`, `retries=2` | `UnexpectedModelBehavior` | 3 (3) | 3 | 2 retry prompts + **1 pending call**; ledger **3** | — |
+- A failed run keeps a usable record, but only in the native view (`graph.stream` last chunk, `agent.iter` run state). The Phase 1 application-level `run()` returns **no tool calls, no text and 0 LLM calls** after any failed run, in both frameworks, because its `_fill` is skipped when an exception escapes.
+- **A pending call in retained state does not mean "not executed".** E2 ran B three times, E3 and E6 ran their last call, and the state shows an unanswered call in each. For a side-effecting tool that is "outcome unknown", the same shape as a lost response.
+- Retained state never mentions a committed effect: in E5/E6 the ledger has 3 orders, no message says "created", and in E6 the third commit appears in no retained message.
+
+### Recovery accounting (B5-3.1.47; nine separate counters)
+| Scenario | HTTP attempts | HTTP errors | Model requests | Model responses | Tool executions | Steps (LG / PA) | Model-visible retries | Framework retries | Tool-internal retries | Business effects |
+|---|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|
+| model-visible retry (39) | 3 | 0 | 3 | 3 | 2 | 5 / 8 | 1 | 0 | 0 | — |
+| LangGraph `RetryPolicy`, 2 failures | 2 | 0 | 2 | 2 | 3 | 3 / — | 0 | 2 | 0 | — |
+| tool-internal retry, 2 internal failures | 2 | 0 | 2 | 2 | **1** | 3 / 6 | 0 | 0 | **2** | — |
+| HTTP retry, 1x 500 | **3** | 1 | 2 | 2 | 1 | 3 / 6 | 0 | 0 | 0 | — |
+| lost response + model retry, no guard | 3 | 0 | 3 | 3 | 2 | 5 / 8 | 1 | 0 | 0 | **2** |
+No row has an "iteration" column. Tool-internal retries and business effects appear in neither framework's counters; the framework sees one execution where the tool ran three times.
+
+### Live results (`openai/gpt-oss-120b`, temperature 0; 72 runs, about 70K tokens; no daily-quota stop)
+Each wording was run 3 times per cell with a 5-decision budget, a tool that always fails, and Pydantic AI `retries=8` so its retry budget does not pre-empt the model. Outcomes are assigned from what the run recorded.
+
+| Wording | LG native (= controlled) | PA native | PA controlled |
+|---|---|---|---|
+| Temporary failure | budget exhausted, no final: 3/3 (5 executions each) | gave up and said so: 3/3 (2-3 executions) | budget exhausted, no final: 3/3 (5) |
+| Please retry the operation | provider rejected the call: 2/3 + budget 1/3 (re-run: 3/3 rejected) | provider rejected the call: 3/3 (re-run: 3/3) | budget exhausted: 3/3 (re-run: 3/3) |
+| Operation unavailable | **empty final accepted: 3/3** (2 executions) | gave up and said so: 3/3 (1) | gave up and said so: 3/3 (1) |
+| Permission denied | gave up and said so: 3/3 (1) | 3/3 (1) | 3/3 (1) |
+
+Three findings from this table:
+1. **Wording changes the model's decision.** "Permission denied" ended the attempts after one execution in 9/9 runs. "Temporary failure" produced retrying in 6/9 (to the budget). The framework treated all four the same.
+2. **The echo changes it too (Mode A vs B).** For "Temporary failure", native Pydantic AI stopped and reported honestly 3/3, while LangGraph and controlled Pydantic AI kept retrying to the budget 6/6. This agrees with Batch 4's polling result.
+3. **Mode B does not make the frameworks equivalent.** With the echo removed, LangGraph and Pydantic AI still differed ("Operation unavailable": LangGraph ended on an empty reply after 2 executions, controlled Pydantic AI gave an honest final after 1; "Please retry": LangGraph hit provider rejections 5/6, controlled Pydantic AI 0/6). The remaining candidates are the error template and the tool-schema envelope, neither separable without changing framework behavior.
+
+**Provider rejection (new failure class).** After "Please retry the operation", the model changed `report_id` from the string `"7"` to the number `7`. Groq rejected it with HTTP 400 `tool_use_failed` ("parameters for tool fetch_report did not match schema: `/report_id`: expected string, but got number") **before either framework saw a response**, so neither could feed the error back. Both runs died. The re-run reproduced it exactly for both native cells (6/6 each, counting the original runs for Pydantic AI; LangGraph 5/6). This was classified as provider-side, not as a framework failure. The recapture also showed one Groq requests-per-minute 429 (limit 30), retried transparently by the SDK, which my classifier first mislabeled; the classifier was fixed and a test added.
+
+**Empty final answer in the wild.** LangGraph accepted an empty reply as the final answer 3/3 for "Operation unavailable". Batch 2 predicted this from a scripted empty reply; this is its first live occurrence. The user would have received an empty string reported as success.
+
+**Lost response (B5-3.1.42 live, 9 runs per case, 3 per cell, all cells identical):** in every run the model retried once after the timeout and then said "Your order has been placed successfully."
+- No guard: ledger **2** in 9/9; the final answer names "Order #2" and mentions no earlier attempt, so it does not report the possible duplicate.
+- Context key: ledger **1** in 9/9, 1 replay each; the answer is accurate.
+
+**Recovery after an earlier success (B5-3.1.41 live, 9 runs):** all cells identical. The model looked up the customer once, tried `send_receipt` once, did not retry it, used `log_note` as instructed, and said so. It never repeated A. The prompt named the fallback, so this tests following a documented recovery path, not inventing one.
+
+### Expected vs actual
+| H | Expected | Actual |
+|---|---|---|
+| H5.1 | error visible under a template; failed call kept; retry new decision | **confirmed**; IDs `call_1_0`/`call_2_0` in every later request |
+| H5.2 | no transient/permanent split; give-up accepted; `retries>=3` needed | **confirmed**, plus the unplanned point: the framework's budget can end the run before the model's decision (Pydantic AI default `retries=1`) |
+| H5.3 | successes kept, A not re-run | **confirmed** offline; live 9/9 |
+| H5.4 | loop-level lost-response and conflict behavior | **confirmed**, including LangGraph recovering from `ConflictError` while Pydantic AI's run ends. Live: duplicate not reported in 9/9 |
+| H5.5 | scripted shows pass-through; wording may matter live | **confirmed**: scripted pass-through in templates; live: wording changed decisions, and the echo changed them again |
+| H5.6 | independent retries, IDs paired | **confirmed** |
+| H5.7 | any final accepted; failure stays in record | **confirmed** (and the live empty final) |
+| H5.8 | state survives only in some API layers | **confirmed**; plus the unplanned "pending call may be executed" and "state never shows a committed effect" |
+| H5.9 | nine counters reconcile | **confirmed**; no universal "iteration" needed |
+| not predicted | — | provider rejection of a type-changed retry; live empty final; Mode B still not equivalent |
+
+### Ownership (evidence-based)
+| Concern | Model | Framework | Runtime | Application | Business/Data |
+|---|---|---|---|---|---|
+| Decide whether to retry | **owns** (wording and echo change it) | pre-empts with budgets (`retries`, loop limit) | — | sets the budgets | — |
+| Expose tool error | — | **owns the text and template** | — | chooses raise vs return | tool chooses the message |
+| Execute retry | requests it (model-visible) | LangGraph `RetryPolicy` re-runs without the model | runs the body | — | tool-internal retries are invisible above |
+| Preserve conversation history | in context only | **holds it** (native view) | — | must capture it: Phase 1 `run()` drops it on failure | — |
+| Preserve successful results | — | holds them in history; no retries of successes | — | — | the effect itself |
+| Enforce retry limits | — | **enforces** | — | **chooses values** | — |
+| Prevent duplicate business effects | — | **no** | no | supplies a stable key | **owns** |
+| Maintain idempotency | may carry a key | no | no | should generate it | **owns** the atomic check and the conflict |
+| Produce a truthful final response | **owns**; unreliable (duplicate unreported 9/9, empty final 3/3) | accepts any final | — | must verify against the ledger if it matters | holds the ground truth |
+
+### Limits (Batch 5)
+- Scripted mechanics are exact for these versions; live is one model, N=3 per cell, and the wording set is four phrases.
+- "Controlled" equalizes the echo only; error template and schema envelope still differ.
+- A condition with reasoning echoed in both frameworks was not built.
+- Honesty labels come from a keyword check plus reading; "did not mention a duplicate" was read, not machine-verified.
+- Not tested: checkpointed resume of a failed run, automatic retry of the model call itself, streaming, tools raising non-`ModelRetry` exceptions in live runs.
+- Langfuse: NOT AVAILABLE.
