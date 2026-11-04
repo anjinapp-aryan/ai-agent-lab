@@ -1014,3 +1014,67 @@ Every step satisfied its own timeout and the run took twice the application's de
 - Measured on LangGraph 1.2.18 / Pydantic AI 2.62.0 with the Phase 1 graph (sync model node) and one async-node variant.
 - Not tested: streaming responses, `FallbackModel`, durable-execution or checkpoint resume (Batches 8-9), `cost_limit` (needs pricing data), multi-process cancellation, Windows-specific thread or socket behavior beyond this machine.
 - Langfuse: NOT AVAILABLE.
+
+
+---
+
+# Batch 7 - Manual agent stepping (hypotheses written 2026-11-06, before any Batch 7 run)
+
+Batch-local IDs follow the Batch 7 brief (`B7-3.1.59` ... `B7-3.1.68`). Gap analysis, mechanism inventory and audit: [batch7-gap-analysis.md](batch7-gap-analysis.md). Scripted and local; no live run is planned. The reasoning-echo modes do not arise.
+
+Five things are kept apart in every result: **observing** an execution, **intercepting** it (acting before a step runs), **modifying** its state, **approving** an action, **resuming** after a stop.
+
+- **H7.1 (B7-3.1.59, LangGraph `stream`):**
+  - `updates` and `values` chunks arrive after the node they describe has finished, so the consumer learns what ran, not what is running.
+  - `tasks` / `debug` start events name the node, but in a synchronous stream the consumer is the thread doing the work, so they are probably delivered together with the node's result (after it ran), not before it starts. Uncertain; this is the main thing to measure.
+  - A tool execution is told apart from a model request only by the node name (`tools` vs `agent`) or the message type, never by a dedicated event.
+  - Stopping consumption between chunks stops everything: nothing is running between chunks.
+- **H7.2 (B7-3.1.60, LangGraph `astream`):** same chunks in the same order as `stream`; the event loop stays free between chunks; closing the async iterator after the model step leaves no task running and the tools node never starts.
+- **H7.3 (B7-3.1.61, Pydantic AI `iter`):**
+  - `iter` yields each node **before** it runs. At `CallToolsNode` the model's proposed calls and arguments are visible and the tool has not started.
+  - There is no "tool return" node: tool results first appear as parts of the next `ModelRequestNode.request`.
+  - `End` carries the final result.
+  - `message_history` grows when the node that produces a message has run.
+  - Events from `node.stream()` (`FunctionToolCallEvent`, `FunctionToolResultEvent`) are observation only.
+- **H7.4 (B7-3.1.62):** both frameworks expose the proposed call and its arguments at a boundary before the tool executes, and the next model request before it is sent; the developer's continue / stop decision is "advance or not". Observing is not authorizing: nothing makes the decision binding.
+- **H7.5 (B7-3.1.63, voluntary stop):** stopping consumption at any of the four boundaries is clean in both frameworks: no tool runs, no request is sent, no task or thread is left. "A tool completed" and "before the next model request" are one boundary in each framework. The same iterator can be advanced later in-process (pause is just not advancing).
+- **H7.6 (B7-3.1.64, state):**
+  - Pydantic AI node fields are mutable and are the authoritative objects: editing the proposed call's arguments changes what the tool receives and what history records; editing the next request changes the wire.
+  - In LangGraph the streamed chunk is a view; whether editing it takes effect is incidental and must not be relied on. The supported route is `update_state` with a checkpointer: edits go through the reducers (by message id) and the next step sees them.
+  - Neither framework marks a modification in its history.
+- **H7.7 (B7-3.1.65, approval):**
+  - Allow and stop are expressible in both with no extra mechanism.
+  - Editing arguments: Pydantic AI by mutating the node, LangGraph only through `update_state`.
+  - Deny-and-continue (tell the model the call was refused and keep going): Pydantic AI by passing a replacement node to `run.next`; LangGraph only through the state API and a checkpointer.
+  - Neither framework records the decision; the application's own log is the only record.
+  - `CallToolsNode.tool_call_results` is the deferred-tool resume mechanism (Batch 8); whether it also affects an ordinary tool is probed once, not designed around.
+- **H7.8 (B7-3.1.66, after a tool failure):** a failure is a boundary event, not an exception, for the consumer: the original call is visible before it runs, the error at the next boundary (as a tool message / a `retried` return), the model's retry call at the one after, and earlier successes stay in state throughout.
+- **H7.9 (B7-3.1.67, limits):**
+  - Pausing consumes no LangGraph budget (it counts steps taken).
+  - A Pydantic AI run deadline (`timeout`) is wall-clock and keeps running while the consumer pauses, so a slow approver can time the run out.
+  - A request-limit error surfaces when the over-limit node is advanced, after the developer has already seen it as the next node.
+  - Skipping `CallToolsNode` by passing a replacement node does not count a tool call.
+- **H7.10 (B7-3.1.68, comparison):**
+  - Pydantic AI offers native observe / intercept / edit / skip at node granularity.
+  - LangGraph natively offers observation and stopping; modification and denial need the state API (checkpointer) or hooks inside the graph.
+  - Neither records approvals or provides safe resume.
+  - Manual stepping gives human approval a place to stand, but not a complete workflow (Batch 8).
+
+
+## Batch 7 - results (run 2026-11-04; offline, scripted; LangGraph 1.2.18, Pydantic AI 2.62.0)
+Full report: [batch7-results.md](batch7-results.md). Raw: `phase-03/results/batch7.json` (git-ignored), summary `results/batch7-summary.json`.
+
+| Hypothesis | Outcome |
+|---|---|
+| H7.1 LangGraph stream | `updates`/`values` chunks arrive after the node ran; `tasks` start events arrive **before** the work (tool not started at receipt). Prediction "probably with the result" was wrong. |
+| H7.2 astream | identical chunks, event loop free, `aclose()` leaves nothing running. Confirmed. |
+| H7.3 Pydantic AI iter | nodes yielded before they run; no tool-return node; events observation-only ordering confirmed. |
+| H7.4 proposed call visible | confirmed in both; observing is not authorizing. |
+| H7.5 voluntary stop | clean at every boundary in both; nothing runs afterwards. Confirmed. |
+| H7.6 state | Pydantic AI node edits authoritative (args, request); history edits ignored once the request node exists. LangGraph in-place chunk edit **did** reach the tool (shared object, undocumented); `update_state` works on a closed checkpointed stream and is ignored by a suspended live stream. |
+| H7.7 approval | allow/stop/modify/deny all implementable in both; Pydantic AI natively, LangGraph through checkpointer + `update_state` + `stream(None)`. Neither records the decision. `tool_call_results=ToolDenied` also denies an ordinary tool. |
+| H7.8 failure | a boundary event, not an exception, in both. Confirmed. |
+| H7.9 limits | LangGraph pausing is free; Pydantic AI `iter(timeout=)` keeps running while paused (`RunTimedOut`); request-limit error raised when the over-limit node is advanced; denied call not counted. Confirmed. |
+| H7.10 comparison | confirmed; LangGraph modification only on a closed, checkpointed stream. |
+
+Tests: `tests/phase_03/test_batch7_stepping.py`, 47 offline, stable over 3 runs; full suite 593 passed.

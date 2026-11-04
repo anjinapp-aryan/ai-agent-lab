@@ -1,0 +1,3166 @@
+{
+ "B7-3.1.59": [
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "values",
+   "chunks": 6,
+   "sequence": [
+    {
+     "i": 1,
+     "mode": "values",
+     "t_ms": 4,
+     "summary": {
+      "messages": [
+       "HumanMessage"
+      ]
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 2,
+     "mode": "values",
+     "t_ms": 30,
+     "summary": {
+      "messages": [
+       "HumanMessage",
+       "AIMessage"
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 3,
+     "mode": "values",
+     "t_ms": 32,
+     "summary": {
+      "messages": [
+       "HumanMessage",
+       "AIMessage",
+       "ToolMessage"
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 4,
+     "mode": "values",
+     "t_ms": 34,
+     "summary": {
+      "messages": [
+       "HumanMessage",
+       "AIMessage",
+       "ToolMessage",
+       "AIMessage"
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 5,
+     "mode": "values",
+     "t_ms": 36,
+     "summary": {
+      "messages": [
+       "HumanMessage",
+       "AIMessage",
+       "ToolMessage",
+       "AIMessage",
+       "ToolMessage"
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 6,
+     "mode": "values",
+     "t_ms": 37,
+     "summary": {
+      "messages": [
+       "HumanMessage",
+       "AIMessage",
+       "ToolMessage",
+       "AIMessage",
+       "ToolMessage",
+       "AIMessage"
+      ]
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "updates",
+   "chunks": 5,
+   "sequence": [
+    {
+     "i": 1,
+     "mode": "updates",
+     "t_ms": 2,
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 2,
+     "mode": "updates",
+     "t_ms": 3,
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 3,
+     "mode": "updates",
+     "t_ms": 4,
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 4,
+     "mode": "updates",
+     "t_ms": 5,
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 5,
+     "mode": "updates",
+     "t_ms": 6,
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "tasks",
+   "chunks": 10,
+   "sequence": [
+    {
+     "i": 1,
+     "mode": "tasks",
+     "t_ms": 0,
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 2,
+     "mode": "tasks",
+     "t_ms": 2,
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 3,
+     "mode": "tasks",
+     "t_ms": 2,
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 4,
+     "mode": "tasks",
+     "t_ms": 2,
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 5,
+     "mode": "tasks",
+     "t_ms": 2,
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 6,
+     "mode": "tasks",
+     "t_ms": 4,
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 7,
+     "mode": "tasks",
+     "t_ms": 4,
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 8,
+     "mode": "tasks",
+     "t_ms": 7,
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 9,
+     "mode": "tasks",
+     "t_ms": 7,
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 10,
+     "mode": "tasks",
+     "t_ms": 9,
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "debug",
+   "chunks": 10,
+   "sequence": [
+    {
+     "i": 1,
+     "mode": "debug",
+     "t_ms": 0,
+     "summary": {
+      "type": "task",
+      "step": 1,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 2,
+     "mode": "debug",
+     "t_ms": 2,
+     "summary": {
+      "type": "task_result",
+      "step": 1,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 3,
+     "mode": "debug",
+     "t_ms": 2,
+     "summary": {
+      "type": "task",
+      "step": 2,
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 4,
+     "mode": "debug",
+     "t_ms": 3,
+     "summary": {
+      "type": "task_result",
+      "step": 2,
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 5,
+     "mode": "debug",
+     "t_ms": 3,
+     "summary": {
+      "type": "task",
+      "step": 3,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 6,
+     "mode": "debug",
+     "t_ms": 4,
+     "summary": {
+      "type": "task_result",
+      "step": 3,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 7,
+     "mode": "debug",
+     "t_ms": 4,
+     "summary": {
+      "type": "task",
+      "step": 4,
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 8,
+     "mode": "debug",
+     "t_ms": 6,
+     "summary": {
+      "type": "task_result",
+      "step": 4,
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 9,
+     "mode": "debug",
+     "t_ms": 6,
+     "summary": {
+      "type": "task",
+      "step": 5,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 10,
+     "mode": "debug",
+     "t_ms": 8,
+     "summary": {
+      "type": "task_result",
+      "step": 5,
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "messages",
+   "chunks": 0,
+   "error": "ValueError: No generations found in stream.",
+   "sequence": []
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "checkpoints",
+   "chunks": 0,
+   "sequence": [],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "custom",
+   "chunks": 0,
+   "sequence": [],
+   "final_snap": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "mode": "tasks+updates (arrival vs execution)",
+   "sequence": [
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ]
+  },
+  {
+   "framework": "langgraph",
+   "api": "stream",
+   "case": "stop after the first update, close the generator",
+   "first_update": {
+    "node": [
+     "agent"
+    ],
+    "update": {
+     "agent": [
+      "AIMessage"
+     ]
+    }
+   },
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_0_4s_later": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "tool_ran": false
+  }
+ ],
+ "B7-3.1.60": [
+  {
+   "framework": "langgraph",
+   "api": "astream",
+   "mode": "updates",
+   "chunks": 5,
+   "same_as_sync": true,
+   "event_loop_ticks_during_run": 35
+  },
+  {
+   "framework": "langgraph",
+   "api": "astream",
+   "mode": "tasks",
+   "chunks": 10,
+   "same_as_sync": true,
+   "event_loop_ticks_during_run": 35
+  },
+  {
+   "framework": "langgraph",
+   "api": "astream",
+   "mode": "values",
+   "chunks": 6,
+   "same_as_sync": true,
+   "event_loop_ticks_during_run": 34
+  },
+  {
+   "framework": "langgraph",
+   "api": "astream",
+   "case": "stop after the first update, aclose()",
+   "first_update": {
+    "node": [
+     "agent"
+    ],
+    "update": {
+     "agent": [
+      "AIMessage"
+     ]
+    }
+   },
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_0_4s_later": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "tasks_before": 1,
+   "tasks_after_close": 1
+  },
+  {
+   "framework": "langgraph",
+   "api": "astream",
+   "case": "consumer awaits between chunks",
+   "loop_stays_free": true
+  }
+ ],
+ "B7-3.1.61": [
+  {
+   "framework": "pydantic-ai",
+   "api": "iter",
+   "case": "nodes in order",
+   "nodes": [
+    {
+     "i": 1,
+     "node": "UserPromptNode",
+     "fields": {
+      "user_prompt": "Take 120 + 45. Then multiply the result by 3."
+     },
+     "snap_at_yield": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 0,
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 2,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "UserPromptPart",
+        "Take 120 + 45. Then multiply t"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 0,
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 3,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "add",
+        {
+         "a": 120,
+         "b": 45
+        },
+        "call_1_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap_at_yield": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 2,
+     "usage": {
+      "requests": 1,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 4,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "165.0"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "history_len": 2,
+     "usage": {
+      "requests": 1,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 5,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "multiply",
+        {
+         "a": 165,
+         "b": 3
+        },
+        "call_2_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap_at_yield": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "history_len": 4,
+     "usage": {
+      "requests": 2,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 6,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "495.0"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 4,
+     "usage": {
+      "requests": 2,
+      "tool_calls": 2
+     }
+    },
+    {
+     "i": 7,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [],
+      "text": [
+       "The result is 495."
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 6,
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     }
+    },
+    {
+     "i": 8,
+     "node": "End",
+     "fields": {
+      "output": "The result is 495."
+     },
+     "snap_at_yield": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 6,
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     }
+    }
+   ],
+   "final": "The result is 495.",
+   "final_history_len": 6
+  },
+  {
+   "framework": "pydantic-ai",
+   "api": "iter + node.stream",
+   "case": "events inside a node",
+   "nodes": [
+    {
+     "i": 1,
+     "node": "UserPromptNode",
+     "fields": {
+      "user_prompt": "Take 120 + 45. Then multiply the result by 3."
+     },
+     "snap_at_yield": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 0,
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 2,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "UserPromptPart",
+        "Take 120 + 45. Then multiply t"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 0,
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 3,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "add",
+        {
+         "a": 120,
+         "b": 45
+        },
+        "call_1_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap_at_yield": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "history_len": 2,
+     "usage": {
+      "requests": 1,
+      "tool_calls": 0
+     },
+     "events": [
+      {
+       "event": "FunctionToolCallEvent",
+       "snap": {
+        "requests": 1,
+        "responses": 1,
+        "tool_starts": 0,
+        "tool_ends": 0
+       }
+      },
+      {
+       "event": "FunctionToolResultEvent",
+       "snap": {
+        "requests": 1,
+        "responses": 1,
+        "tool_starts": 1,
+        "tool_ends": 1
+       }
+      }
+     ]
+    },
+    {
+     "i": 4,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "165.0"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "history_len": 2,
+     "usage": {
+      "requests": 1,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 5,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "multiply",
+        {
+         "a": 165,
+         "b": 3
+        },
+        "call_2_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap_at_yield": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "history_len": 4,
+     "usage": {
+      "requests": 2,
+      "tool_calls": 1
+     },
+     "events": [
+      {
+       "event": "FunctionToolCallEvent",
+       "snap": {
+        "requests": 2,
+        "responses": 2,
+        "tool_starts": 1,
+        "tool_ends": 1
+       }
+      },
+      {
+       "event": "FunctionToolResultEvent",
+       "snap": {
+        "requests": 2,
+        "responses": 2,
+        "tool_starts": 2,
+        "tool_ends": 2
+       }
+      }
+     ]
+    },
+    {
+     "i": 6,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "495.0"
+       ]
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 4,
+     "usage": {
+      "requests": 2,
+      "tool_calls": 2
+     }
+    },
+    {
+     "i": 7,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [],
+      "text": [
+       "The result is 495."
+      ]
+     },
+     "snap_at_yield": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 6,
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     },
+     "events": []
+    },
+    {
+     "i": 8,
+     "node": "End",
+     "fields": {
+      "output": "The result is 495."
+     },
+     "snap_at_yield": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "history_len": 6,
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     }
+    }
+   ]
+  }
+ ],
+ "B7-3.1.62": [
+  {
+   "framework": "langgraph",
+   "boundaries": [
+    {
+     "i": 1,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 2,
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 3,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 4,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "i": 5,
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 6,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 7,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 8,
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 9,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 10,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "tools"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "i": 11,
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 12,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "tools",
+      "error": null
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 13,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_start",
+      "name": "agent"
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 14,
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      }
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "i": 15,
+     "mode": "tasks",
+     "summary": {
+      "event": "task_result",
+      "name": "agent",
+      "error": null
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    }
+   ],
+   "tool_args_seen_by_tools": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ]
+  },
+  {
+   "framework": "langgraph",
+   "case": "proposed call readable before execution",
+   "seen": [
+    {
+     "proposed": [
+      [
+       "add",
+       {
+        "a": 120,
+        "b": 45
+       },
+       "call_1_0"
+      ]
+     ],
+     "tool_starts_at_that_moment": 0
+    },
+    {
+     "proposed": [
+      [
+       "multiply",
+       {
+        "a": 165,
+        "b": 3
+       },
+       "call_2_0"
+      ]
+     ],
+     "tool_starts_at_that_moment": 1
+    },
+    {
+     "proposed": [],
+     "tool_starts_at_that_moment": 2
+    }
+   ]
+  },
+  {
+   "framework": "pydantic-ai",
+   "boundaries": [
+    {
+     "i": 1,
+     "node": "UserPromptNode",
+     "fields": {
+      "user_prompt": "Take 120 + 45. Then multiply the result by 3."
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 2,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "UserPromptPart",
+        "Take 120 + 45. Then multiply t"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 3,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "add",
+        {
+         "a": 120,
+         "b": 45
+        },
+        "call_1_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 1,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 4,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "165.0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "usage": {
+      "requests": 1,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 5,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "multiply",
+        {
+         "a": 165,
+         "b": 3
+        },
+        "call_2_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "usage": {
+      "requests": 2,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 6,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "495.0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "usage": {
+      "requests": 2,
+      "tool_calls": 2
+     }
+    },
+    {
+     "i": 7,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [],
+      "text": [
+       "The result is 495."
+      ]
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     }
+    }
+   ],
+   "tool_args_seen_by_tools": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ]
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "next request visible before it is sent",
+   "model_request_nodes": [
+    {
+     "request_parts": [
+      [
+       "UserPromptPart",
+       "Take 120 + 45. Then multiply t"
+      ]
+     ],
+     "wire_requests_already_sent": 0
+    },
+    {
+     "request_parts": [
+      [
+       "ToolReturnPart",
+       "165.0"
+      ]
+     ],
+     "wire_requests_already_sent": 1
+    },
+    {
+     "request_parts": [
+      [
+       "ToolReturnPart",
+       "495.0"
+      ]
+     ],
+     "wire_requests_already_sent": 2
+    }
+   ]
+  }
+ ],
+ "B7-3.1.63": [
+  {
+   "framework": "langgraph",
+   "boundary": "after first model response",
+   "stopped_at_chunk": 2,
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "work_continued_after_stop": false,
+   "threads_before": 1,
+   "threads_after": 1
+  },
+  {
+   "framework": "langgraph",
+   "boundary": "tool proposed (tools task starts)",
+   "stopped_at_chunk": 4,
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "work_continued_after_stop": false,
+   "threads_before": 1,
+   "threads_after": 1
+  },
+  {
+   "framework": "langgraph",
+   "boundary": "tool completed (tools update)",
+   "stopped_at_chunk": 5,
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "work_continued_after_stop": false,
+   "threads_before": 1,
+   "threads_after": 1
+  },
+  {
+   "framework": "langgraph",
+   "boundary": "before next request (agent starts #2)",
+   "stopped_at_chunk": 7,
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "work_continued_after_stop": false,
+   "threads_before": 1,
+   "threads_after": 1
+  },
+  {
+   "framework": "langgraph",
+   "boundary": "after final answer",
+   "stopped_at_chunk": 14,
+   "snap_at_stop": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   },
+   "snap_after_settle": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   },
+   "work_continued_after_stop": false,
+   "threads_before": 1,
+   "threads_after": 1
+  },
+  {
+   "framework": "pydantic-ai",
+   "boundary": "before first request",
+   "stopped_at_node": [
+    2,
+    "ModelRequestNode"
+   ],
+   "snap_at_stop": {
+    "requests": 0,
+    "responses": 0,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_after_settle": {
+    "requests": 0,
+    "responses": 0,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "work_continued_after_stop": false,
+   "tasks_left": 0,
+   "error": null
+  },
+  {
+   "framework": "pydantic-ai",
+   "boundary": "after first response / tool proposed",
+   "stopped_at_node": [
+    3,
+    "CallToolsNode"
+   ],
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "work_continued_after_stop": false,
+   "tasks_left": 0,
+   "error": null
+  },
+  {
+   "framework": "pydantic-ai",
+   "boundary": "tool completed = before next request",
+   "stopped_at_node": [
+    4,
+    "ModelRequestNode"
+   ],
+   "snap_at_stop": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "snap_after_settle": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 1,
+    "tool_ends": 1
+   },
+   "work_continued_after_stop": false,
+   "tasks_left": 0,
+   "error": null
+  },
+  {
+   "framework": "pydantic-ai",
+   "boundary": "after final answer (last CallToolsNode)",
+   "stopped_at_node": [
+    7,
+    "CallToolsNode"
+   ],
+   "snap_at_stop": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   },
+   "snap_after_settle": {
+    "requests": 3,
+    "responses": 3,
+    "tool_starts": 2,
+    "tool_ends": 2
+   },
+   "work_continued_after_stop": false,
+   "tasks_left": 0,
+   "error": null
+  },
+  {
+   "framework": "langgraph",
+   "case": "pause 0.3 s at the tools task start, then continue",
+   "completed_tool_ends": 2,
+   "snap_at_pause": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   }
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "pause 0.3 s at first CallToolsNode, then continue",
+   "final": "The result is 495.",
+   "snap_at_yield": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "snap_after_pause": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   }
+  },
+  {
+   "framework": "langgraph",
+   "case": "does the tools task run while the consumer sleeps at its task_start",
+   "before": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "after_pause": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   },
+   "finished": {
+    "requests": 2,
+    "responses": 2,
+    "tool_starts": 1,
+    "tool_ends": 1
+   }
+  }
+ ],
+ "B7-3.1.64": [
+  {
+   "framework": "langgraph",
+   "case": "mutate chunk in place (not a supported route)",
+   "tool_received": [
+    {
+     "a": 1000.0,
+     "b": 45.0
+    }
+   ]
+  },
+  {
+   "framework": "langgraph",
+   "case": "get_state / update_state by message id, then continue the same thread",
+   "before": {
+    "next": [
+     "tools"
+    ],
+    "n_messages": 2,
+    "pending": [
+     [
+      "add",
+      {
+       "a": 120,
+       "b": 45
+      },
+      "call_1_0"
+     ]
+    ],
+    "has_metadata": [
+     "parents",
+     "source",
+     "step"
+    ],
+    "history_len": 3
+   },
+   "after_update": {
+    "next": [
+     "tools"
+    ],
+    "n_messages": 2,
+    "pending": [
+     [
+      "add",
+      {
+       "a": 1000,
+       "b": 45
+      },
+      "call_1_0"
+     ]
+    ],
+    "history_len": 4,
+    "metadata_source": "update",
+    "metadata_writes": "None"
+   },
+   "tool_received": [
+    {
+     "a": 1000.0,
+     "b": 45.0
+    }
+   ],
+   "final_messages": [
+    "HumanMessage",
+    "AIMessage",
+    "ToolMessage",
+    "AIMessage"
+   ],
+   "marks_modification_in_messages": true
+  },
+  {
+   "framework": "langgraph",
+   "case": "update_state while the same stream is suspended, then keep iterating it",
+   "tool_received": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    }
+   ],
+   "error": null
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "mutate proposed call args on CallToolsNode",
+   "tool_received": [
+    {
+     "a": 1000.0,
+     "b": 45.0
+    }
+   ],
+   "assistant_tool_calls_in_next_request": [
+    [
+     {
+      "id": "call_1_0",
+      "type": "function",
+      "function": {
+       "name": "add",
+       "arguments": "{\"a\":1000,\"b\":45}"
+      }
+     }
+    ]
+   ],
+   "final": "The sum is 165."
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "mutate the next ModelRequestNode.request",
+   "tool_content_on_wire": [
+    "EDITED-BY-CONSUMER"
+   ],
+   "final": "The sum is 165."
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "insert into run.ctx.state.message_history",
+   "roles_in_request_2": [
+    "system",
+    "user",
+    "assistant",
+    "tool"
+   ],
+   "error": null,
+   "final": "The sum is 165."
+  }
+ ],
+ "B7-3.1.65": [
+  {
+   "framework": "langgraph",
+   "case": "allow all",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "allow"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "allow"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ],
+   "model_requests": 3,
+   "state_messages": [
+    "HumanMessage",
+    "AIMessage",
+    "ToolMessage:165.0",
+    "AIMessage",
+    "ToolMessage:495.0",
+    "AIMessage"
+   ],
+   "stopped": false,
+   "decision_recorded_by_framework": false
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "allow all",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "allow"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "allow"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ],
+   "model_requests": 3,
+   "final": "The result is 495.",
+   "error": null,
+   "usage_tool_calls": 2
+  },
+  {
+   "framework": "langgraph",
+   "case": "stop at first",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "stop"
+    }
+   ],
+   "tools_executed": [],
+   "model_requests": 1,
+   "state_messages": [
+    "HumanMessage",
+    "AIMessage"
+   ],
+   "stopped": true,
+   "decision_recorded_by_framework": false
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "stop at first",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "stop"
+    }
+   ],
+   "tools_executed": [],
+   "model_requests": 1,
+   "final": null,
+   "error": null,
+   "usage_tool_calls": 0
+  },
+  {
+   "framework": "langgraph",
+   "case": "modify add.a -> 1000",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "modify"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "allow"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 1000.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ],
+   "model_requests": 3,
+   "state_messages": [
+    "HumanMessage",
+    "AIMessage",
+    "ToolMessage:1045.0",
+    "AIMessage",
+    "ToolMessage:495.0",
+    "AIMessage"
+   ],
+   "stopped": false,
+   "decision_recorded_by_framework": false
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "modify add.a -> 1000",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "modify"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "allow"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 1000.0,
+     "b": 45.0
+    },
+    {
+     "a": 165.0,
+     "b": 3.0
+    }
+   ],
+   "model_requests": 3,
+   "final": "The result is 495.",
+   "error": null,
+   "usage_tool_calls": 2
+  },
+  {
+   "framework": "langgraph",
+   "case": "deny multiply",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "allow"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "deny"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    }
+   ],
+   "model_requests": 3,
+   "state_messages": [
+    "HumanMessage",
+    "AIMessage",
+    "ToolMessage:165.0",
+    "AIMessage",
+    "ToolMessage:DENIED by policy",
+    "AIMessage"
+   ],
+   "stopped": false,
+   "decision_recorded_by_framework": false
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "deny multiply",
+   "decisions": [
+    {
+     "tool": "add",
+     "args": {
+      "a": 120,
+      "b": 45
+     },
+     "decision": "allow"
+    },
+    {
+     "tool": "multiply",
+     "args": {
+      "a": 165,
+      "b": 3
+     },
+     "decision": "deny"
+    }
+   ],
+   "tools_executed": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    }
+   ],
+   "model_requests": 3,
+   "final": "The result is 495.",
+   "error": null,
+   "usage_tool_calls": 1
+  },
+  {
+   "case": "implementation size of the consumer loops (this file)",
+   "langgraph_consumer_loop_lines": 36,
+   "pydantic_ai_consumer_loop_lines": 53
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "probe: tool_call_results=ToolDenied on an ordinary tool",
+   "tools_executed": [],
+   "final": "The sum is 165.",
+   "error": null,
+   "roles_request_2": [
+    "system:You are a calculator assistant",
+    "user:Take 120 + 45. Then multiply t",
+    "assistant:None",
+    "tool:no"
+   ]
+  }
+ ],
+ "B7-3.1.66": [
+  {
+   "framework": "langgraph",
+   "boundaries": [
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      },
+      "proposed": [
+       [
+        "add",
+        "call_1_0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      },
+      "tool_messages": [
+       [
+        "add",
+        "success",
+        "165.0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      },
+      "proposed": [
+       [
+        "flaky",
+        "call_2_0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      },
+      "tool_messages": [
+       [
+        "flaky",
+        "error",
+        "Error: ModelRetry('Temporary failure')\n "
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      },
+      "proposed": [
+       [
+        "flaky",
+        "call_3_0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "tools"
+      ],
+      "update": {
+       "tools": [
+        "ToolMessage"
+       ]
+      },
+      "tool_messages": [
+       [
+        "flaky",
+        "success",
+        "flaky succeeded (execution 2)"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 3,
+      "tool_ends": 3
+     }
+    },
+    {
+     "mode": "updates",
+     "summary": {
+      "node": [
+       "agent"
+      ],
+      "update": {
+       "agent": [
+        "AIMessage"
+       ]
+      },
+      "proposed": []
+     },
+     "snap": {
+      "requests": 4,
+      "responses": 4,
+      "tool_starts": 3,
+      "tool_ends": 3
+     }
+    }
+   ],
+   "error_escaped_to_consumer": null,
+   "tool_executions": 3
+  },
+  {
+   "framework": "pydantic-ai",
+   "nodes": [
+    {
+     "i": 1,
+     "node": "UserPromptNode",
+     "fields": {
+      "user_prompt": "Take 120 + 45. Then multiply the result by 3."
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 2,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "UserPromptPart",
+        "Take 120 + 45. Then multiply t"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 0,
+      "responses": 0,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 0,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 3,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "add",
+        {
+         "a": 120,
+         "b": 45
+        },
+        "call_1_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 0,
+      "tool_ends": 0
+     },
+     "usage": {
+      "requests": 1,
+      "tool_calls": 0
+     }
+    },
+    {
+     "i": 4,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "165.0"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 1,
+      "responses": 1,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "usage": {
+      "requests": 1,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 5,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "flaky",
+        {},
+        "call_2_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 1,
+      "tool_ends": 1
+     },
+     "usage": {
+      "requests": 2,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 6,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "Temporary failure"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 2,
+      "responses": 2,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "usage": {
+      "requests": 2,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 7,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [
+       [
+        "flaky",
+        {},
+        "call_3_0"
+       ]
+      ],
+      "text": []
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 2,
+      "tool_ends": 2
+     },
+     "usage": {
+      "requests": 3,
+      "tool_calls": 1
+     }
+    },
+    {
+     "i": 8,
+     "node": "ModelRequestNode",
+     "fields": {
+      "request_parts": [
+       [
+        "ToolReturnPart",
+        "flaky succeeded (execution 2)"
+       ]
+      ]
+     },
+     "snap": {
+      "requests": 3,
+      "responses": 3,
+      "tool_starts": 3,
+      "tool_ends": 3
+     },
+     "usage": {
+      "requests": 3,
+      "tool_calls": 2
+     }
+    },
+    {
+     "i": 9,
+     "node": "CallToolsNode",
+     "fields": {
+      "tool_calls": [],
+      "text": [
+       "Done: 165."
+      ]
+     },
+     "snap": {
+      "requests": 4,
+      "responses": 4,
+      "tool_starts": 3,
+      "tool_ends": 3
+     },
+     "usage": {
+      "requests": 4,
+      "tool_calls": 2
+     }
+    }
+   ],
+   "request_parts_per_ModelRequestNode": [
+    [
+     [
+      "UserPromptPart",
+      null,
+      "Take 120 + 45. Then multiply the result "
+     ]
+    ],
+    [
+     [
+      "ToolReturnPart",
+      "success",
+      "165.0"
+     ]
+    ],
+    [
+     [
+      "ToolReturnPart",
+      "retried",
+      "Temporary failure"
+     ]
+    ],
+    [
+     [
+      "ToolReturnPart",
+      "success",
+      "flaky succeeded (execution 2)"
+     ]
+    ]
+   ],
+   "final": "Done: 165.",
+   "error": null,
+   "tool_executions": 3
+  }
+ ],
+ "B7-3.1.67": [
+  {
+   "framework": "langgraph",
+   "recursion_limit": 6,
+   "pause_s_per_tool_step": 0.3,
+   "chunks_seen": 15,
+   "last_update": {
+    "node": [
+     "agent"
+    ],
+    "update": {
+     "agent": [
+      "AIMessage"
+     ]
+    }
+   },
+   "error": null,
+   "requests": 3,
+   "tool_ends": 2,
+   "wall_s": 0.61
+  },
+  {
+   "framework": "langgraph",
+   "recursion_limit": 6,
+   "pause_s_per_tool_step": 0.0,
+   "chunks_seen": 15,
+   "last_update": {
+    "node": [
+     "agent"
+    ],
+    "update": {
+     "agent": [
+      "AIMessage"
+     ]
+    }
+   },
+   "error": null,
+   "requests": 3,
+   "tool_ends": 2,
+   "wall_s": 0.01
+  },
+  {
+   "framework": "langgraph",
+   "recursion_limit": 5,
+   "pause_s_per_tool_step": 0.0,
+   "chunks_seen": 15,
+   "last_update": {
+    "node": [
+     "agent"
+    ],
+    "update": {
+     "agent": [
+      "AIMessage"
+     ]
+    }
+   },
+   "error": "GraphRecursionError: Recursion limit of 5 reached without hitting a stop condition. You can",
+   "requests": 3,
+   "tool_ends": 2,
+   "wall_s": 0.01
+  },
+  {
+   "framework": "langgraph",
+   "recursion_limit": 4,
+   "pause_s_per_tool_step": 0.0,
+   "chunks_seen": 12,
+   "last_update": {
+    "node": [
+     "tools"
+    ],
+    "update": {
+     "tools": [
+      "ToolMessage"
+     ]
+    }
+   },
+   "error": "GraphRecursionError: Recursion limit of 4 reached without hitting a stop condition. You can",
+   "requests": 2,
+   "tool_ends": 2,
+   "wall_s": 0.01
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "request_limit=2, three requests needed",
+   "nodes_seen_before_error": [
+    [
+     1,
+     "UserPromptNode"
+    ],
+    [
+     2,
+     "ModelRequestNode"
+    ],
+    [
+     3,
+     "CallToolsNode"
+    ],
+    [
+     4,
+     "ModelRequestNode"
+    ],
+    [
+     5,
+     "CallToolsNode"
+    ],
+    [
+     6,
+     "ModelRequestNode"
+    ]
+   ],
+   "error": "UsageLimitExceeded: The next request would exceed the request_limit of 2. Consider raising the limit, or see the docs on usage limits for budget-aware patterns: https://pydantic.dev/docs/ai/core-conce",
+   "snap": {
+    "requests": 2,
+    "responses": 2,
+    "tool_starts": 2,
+    "tool_ends": 2
+   }
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "deny multiply by replacement node",
+   "executed": [
+    {
+     "a": 120.0,
+     "b": 45.0
+    }
+   ],
+   "usage_tool_calls_at_last_node": {
+    "requests": 3,
+    "tool_calls": 1
+   }
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "iter(timeout=0.3), consumer pauses 0.0 s at CallToolsNode",
+   "nodes_seen": [
+    "UserPromptNode",
+    "ModelRequestNode",
+    "CallToolsNode",
+    "ModelRequestNode",
+    "CallToolsNode"
+   ],
+   "error": null,
+   "snap": {
+    "requests": 2,
+    "responses": 2,
+    "tool_starts": 1,
+    "tool_ends": 1
+   }
+  },
+  {
+   "framework": "pydantic-ai",
+   "case": "iter(timeout=0.3), consumer pauses 0.6 s at CallToolsNode",
+   "nodes_seen": [
+    "UserPromptNode",
+    "ModelRequestNode",
+    "CallToolsNode"
+   ],
+   "error": "RunTimedOut: The agent run timed out.",
+   "snap": {
+    "requests": 1,
+    "responses": 1,
+    "tool_starts": 0,
+    "tool_ends": 0
+   }
+  }
+ ],
+ "B7-3.1.68": [
+  {
+   "case": "capability matrix derived from B7-3.1.59-67",
+   "matrix": {
+    "observe_proposed_call_before_execution": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "voluntary_stop_runs_nothing_afterwards": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "allow": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "stop": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "modify_args_then_run": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "deny_and_continue": {
+     "langgraph": true,
+     "pydantic-ai": true
+    },
+    "needs_checkpointer_or_state_api_for_modify_deny": {
+     "langgraph": true,
+     "pydantic-ai": false
+    },
+    "framework_records_the_decision": {
+     "langgraph": false,
+     "pydantic-ai": false
+    }
+   },
+   "consumer_loop_lines": {
+    "case": "implementation size of the consumer loops (this file)",
+    "langgraph_consumer_loop_lines": 36,
+    "pydantic_ai_consumer_loop_lines": 53
+   }
+  }
+ ]
+}
